@@ -1,6 +1,5 @@
 import React from 'react';
 import { AlertTriangle, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -13,51 +12,51 @@ interface ConfirmationModalProps {
   isDangerous?: boolean;
 }
 
-export function ConfirmationModal({
+export default function ConfirmationModal({
   isOpen,
   onClose,
   onConfirm,
   title,
   message,
-  confirmText = 'حذف',
-  cancelText = 'إلغاء',
-  isDangerous = true,
+  confirmText = "تأكيد",
+  cancelText = "إلغاء",
+  isDangerous = false
 }: ConfirmationModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl w-full max-w-md p-6 shadow-2xl transform transition-all">
-        <div className="flex justify-between items-start mb-4">
-          <div className={cn("flex items-center gap-3", isDangerous ? "text-red-600" : "text-black")}>
-            <div className={cn("p-2 rounded-full", isDangerous ? "bg-red-50" : "bg-neutral-100")}>
-              <AlertTriangle size={24} />
-            </div>
-            <h3 className="text-lg font-bold text-neutral-900">{title}</h3>
+    <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl transform transition-all scale-100">
+        <div className="flex items-center justify-between mb-4">
+          <div className={`p-3 rounded-full ${isDangerous ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-black'}`}>
+            <AlertTriangle size={24} />
           </div>
-          <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600">
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
             <X size={20} />
           </button>
         </div>
         
-        <p className="text-neutral-600 mb-8 leading-relaxed">
+        <h3 className="text-xl font-bold text-gray-900 mb-2 font-serif">{title}</h3>
+        <p className="text-gray-500 mb-8 leading-relaxed">
           {message}
         </p>
 
-        <div className="flex justify-end gap-3">
-          <button 
+        <div className="flex gap-3 justify-end">
+          <button
             onClick={onClose}
-            className="px-4 py-2 text-neutral-600 hover:bg-neutral-100 rounded-lg font-medium transition-colors"
+            className="px-6 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
           >
             {cancelText}
           </button>
-          <button 
+          <button
             onClick={() => {
               onConfirm();
               onClose();
             }}
-            className={`px-6 py-2 text-white rounded-lg font-medium transition-colors flex items-center gap-2 ${
-              isDangerous ? 'bg-red-600 hover:bg-red-700' : 'bg-black hover:bg-neutral-800'
+            className={`px-6 py-2.5 rounded-xl text-white font-medium shadow-lg transition-all transform hover:scale-105 ${
+              isDangerous 
+                ? 'bg-red-600 hover:bg-red-700 shadow-red-200' 
+                : 'bg-black hover:bg-gray-800 shadow-gray-200'
             }`}
           >
             {confirmText}

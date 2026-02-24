@@ -1,22 +1,27 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Product, Category, ProductVariant } from '@/types/database';
-import { Plus, Search, Edit2, Trash2, Image as ImageIcon, X, Save } from 'lucide-react';
-import { cn } from '@/lib/utils';
-
-import { ConfirmationModal } from '@/components/ConfirmationModal';
-import { ImageUpload } from '@/components/ImageUpload';
+import { supabase } from '../lib/supabase';
+import { Product, Category, ProductVariant } from '../types/database';
+import { Plus, Edit2, Trash2, X, ChevronDown, ChevronUp, Image as ImageIcon } from 'lucide-react';
+import { cn, formatNumber } from '../lib/utils';
+import ConfirmationModal from '../components/ConfirmationModal';
+import ImageUpload from '../components/ImageUpload';
 
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [variants, setVariants] = useState<ProductVariant[]>([]);
   
-  // Delete Modal State
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [productToDelete, setProductToDelete] = useState<string | null>(null);
+  // Confirmation Modal State
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; productId: string | null }>({
+    isOpen: false,
+    productId: null
+  });
+  const [deleteVariantModal, setDeleteVariantModal] = useState<{ isOpen: boolean; variantId: string | null }>({
+    isOpen: false,
+    variantId: null
+  });
 
   // Form State
   const [formData, setFormData] = useState<Partial<Product>>({
@@ -28,37 +33,32 @@ export default function Products() {
     images: [],
     is_active: true
   });
-  const [variants, setVariants] = useState<Partial<ProductVariant>[]>([]);
 
   useEffect(() => {
-    fetchData();
+    fetchProducts();
+    fetchCategories();
   }, []);
 
-  async function fetchData() {
-    setLoading(true);
-    const [productsRes, categoriesRes] = await Promise.all([
-      supabase.from('products').select('*, category:categories(*), variants:product_variants(*)').order('created_at', { ascending: false }),
-      supabase.from('categories').select('*').order('name')
-    ]);
-
-    if (productsRes.data) setProducts(productsRes.data);
-    if (categoriesRes.data) setCategories(categoriesRes.data);
-    setLoading(false);
+  async function fetchProducts() {
+    const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+    if (data) setProducts(data);
   }
 
-  function handleOpenModal(product?: Product) {
+  async function fetchCategories() {
+    const { data } = await supabase.from('categories').select('*');
+    if (data) setCategories(data);
+  }
+
+  async function fetchVariants(productId: string) {
+    const { data } = await supabase.from('product_variants').select('*').eq('product_id', productId);
+    if (data) setVariants(data);
+  }
+
+  const handleOpenModal = async (product?: Product) => {
     if (product) {
       setEditingProduct(product);
-      setFormData({
-        name: product.name,
-        description: product.description,
-        price: product.price,
-        discount_price: product.discount_price,
-        category_id: product.category_id || '',
-        images: product.images,
-        is_active: product.is_active
-      });
-      setVariants(product.variants || []);
+      setFormData(product);
+      await fetchVariants(product.id);
     } else {
       setEditingProduct(null);
       setFormData({
@@ -73,223 +73,232 @@ export default function Products() {
       setVariants([]);
     }
     setIsModalOpen(true);
-  }
+  };
 
-  async function handleSave() {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
       let productId = editingProduct?.id;
-      
-      const productPayload = {
-        name: formData.name,
-        description: formData.description,
-        price: Number(formData.price),
-        discount_price: formData.discount_price ? Number(formData.discount_price) : null,
-        category_id: formData.category_id || null,
-        images: formData.images || [],
-        is_active: formData.is_active
-      };
 
-      console.log('Saving product:', productPayload);
-
-      // 1. Save Product
       if (editingProduct) {
         const { error } = await supabase
           .from('products')
-          .update(productPayload)
+          .update(formData)
           .eq('id', editingProduct.id);
         if (error) throw error;
       } else {
         const { data, error } = await supabase
           .from('products')
-          .insert(productPayload)
+          .insert([formData])
           .select()
           .single();
         if (error) throw error;
         productId = data.id;
-      }
 
-      // 2. Save Variants
-      if (productId) {
-        // Identify variants to keep (those with IDs)
-        const keepVariantIds = variants.filter(v => v.id).map(v => v.id);
-        
-        // Delete removed variants
-        if (keepVariantIds.length > 0) {
-           await supabase
-            .from('product_variants')
-            .delete()
-            .eq('product_id', productId)
-            .not('id', 'in', `(${keepVariantIds.join(',')})`);
-        } else if (editingProduct && variants.length === 0) {
-           // If editing and cleared all variants, delete all
-           await supabase.from('product_variants').delete().eq('product_id', productId);
-        }
-
-        // Upsert variants
-        // Filter out empty variants if necessary, or validate them
-        const validVariants = variants.filter(v => v.size && v.color_name);
-        
-        const variantsPayload = validVariants.map(v => {
-          const variant: any = {
+        // Save variants for new product
+        if (variants.length > 0) {
+          const variantsToInsert = variants.map(v => ({
             product_id: productId,
             size: v.size,
             color_name: v.color_name,
-            color_hex: v.color_hex || '#000000',
-            quantity: Number(v.quantity)
-          };
-          // Only add ID if it exists (for updates)
-          if (v.id) {
-            variant.id = v.id;
-          }
-          return variant;
-        });
-
-        if (variantsPayload.length > 0) {
-          const { error: variantError } = await supabase
-            .from('product_variants')
-            .upsert(variantsPayload);
+            color_hex: v.color_hex,
+            quantity: v.quantity
+          }));
           
-          if (variantError) throw variantError;
+          const { error: variantsError } = await supabase
+            .from('product_variants')
+            .insert(variantsToInsert);
+            
+          if (variantsError) console.error('Error saving variants:', variantsError);
         }
       }
-
+      
       setIsModalOpen(false);
-      fetchData();
+      fetchProducts();
     } catch (error) {
       console.error('Error saving product:', error);
-      alert('فشل حفظ المنتج: ' + (error as any).message);
+      alert('حدث خطأ أثناء حفظ المنتج');
     }
-  }
+  };
 
-  function handleDelete(id: string) {
-    setProductToDelete(id);
-    setIsDeleteModalOpen(true);
-  }
+  const confirmDelete = (id: string) => {
+    setDeleteModal({ isOpen: true, productId: id });
+  };
 
-  async function confirmDelete() {
-    if (!productToDelete) return;
+  const handleDelete = async () => {
+    if (!deleteModal.productId) return;
     
-    const { error } = await supabase.from('products').delete().eq('id', productToDelete);
-    if (error) {
-      alert('فشل حذف المنتج');
-    } else {
-      fetchData();
+    try {
+      // 1. Unlink from orders first (preserve history, remove constraint)
+      // We set product_id to null so the order item remains but isn't tied to the deleted product
+      const { error: unlinkError } = await supabase
+        .from('order_items')
+        .update({ product_id: null })
+        .eq('product_id', deleteModal.productId);
+
+      if (unlinkError) throw unlinkError;
+
+      // 2. Delete variants (manual cascade)
+      const { error: variantsError } = await supabase
+        .from('product_variants')
+        .delete()
+        .eq('product_id', deleteModal.productId);
+        
+      if (variantsError) throw variantsError;
+
+      // 3. Delete the product
+      const { error: productError } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', deleteModal.productId);
+      
+      if (productError) throw productError;
+
+      fetchProducts();
+      setDeleteModal({ isOpen: false, productId: null });
+    } catch (error: any) {
+      console.error('Error deleting product:', error);
+      alert(`فشل حذف المنتج: ${error.message || 'خطأ غير معروف'}`);
     }
-    setProductToDelete(null);
-    setIsDeleteModalOpen(false);
-  }
+  };
 
-  // Variant Helpers
-  function addVariant() {
-    setVariants([...variants, { size: 'M', color_name: 'Black', color_hex: '#000000', quantity: 0 }]);
-  }
+  const handleDeleteVariant = async () => {
+    if (!deleteVariantModal.variantId) return;
+    await supabase.from('product_variants').delete().eq('id', deleteVariantModal.variantId);
+    setVariants(variants.filter(item => item.id !== deleteVariantModal.variantId));
+    setDeleteVariantModal({ isOpen: false, variantId: null });
+  };
 
-  function updateVariant(index: number, field: keyof ProductVariant, value: any) {
-    const newVariants = [...variants];
-    newVariants[index] = { ...newVariants[index], [field]: value };
-    setVariants(newVariants);
-  }
+  const handleImageUpload = (url: string) => {
+    setFormData(prev => ({ ...prev, images: [...(prev.images || []), url] }));
+  };
 
-  function removeVariant(index: number) {
-    setVariants(variants.filter((_, i) => i !== index));
-  }
+  const removeImage = (index: number) => {
+    setFormData(prev => ({ ...prev, images: prev.images?.filter((_, i) => i !== index) }));
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-3xl font-serif font-bold text-neutral-900">المنتجات</h2>
-          <p className="text-neutral-500 mt-1">إدارة المخزون والكتالوج الخاص بك.</p>
-        </div>
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-serif font-bold text-gray-900">المنتجات</h1>
         <button 
           onClick={() => handleOpenModal()}
-          className="bg-black text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-neutral-800 transition-colors"
+          className="bg-black text-white px-6 py-3 rounded-xl flex items-center gap-2 hover:bg-gray-800 transition-colors shadow-lg shadow-gray-200"
         >
-          <Plus size={20} /> إضافة منتج
+          <Plus size={20} /> إضافة منتج جديد
         </button>
       </div>
 
-      {/* Product Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {products.map((product) => (
-          <div key={product.id} className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden group">
-            <div className="aspect-[4/3] bg-neutral-100 relative">
-              {product.images?.[0] ? (
-                <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-neutral-400">
-                  <ImageIcon size={32} />
-                </div>
-              )}
-              <div className="absolute top-2 left-2 flex gap-2 transition-opacity">
-                <button 
-                  onClick={() => handleOpenModal(product)}
-                  className="p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-sm hover:bg-white text-neutral-900 border border-neutral-200/50"
-                >
-                  <Edit2 size={16} />
-                </button>
-                <button 
-                  onClick={() => handleDelete(product.id)}
-                  className="p-2 bg-white/90 backdrop-blur-sm text-red-500 rounded-full shadow-sm hover:bg-red-50 border border-neutral-200/50"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            </div>
-            <div className="p-4">
-              <div className="flex justify-between items-start mb-1">
-                <h3 className="font-medium text-lg truncate pl-2">{product.name}</h3>
-                <span className={cn("text-xs px-2 py-0.5 rounded-full", product.is_active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600")}>
-                  {product.is_active ? 'نشط' : 'مسودة'}
-                </span>
-              </div>
-              <p className="text-sm text-neutral-500 mb-3">{product.category?.name}</p>
-              <div className="flex items-center gap-2">
-                <span className="font-bold">{product.price.toLocaleString()} د.ج</span>
-                {product.discount_price && (
-                  <span className="text-sm text-neutral-400 line-through">{product.discount_price.toLocaleString()} د.ج</span>
-                )}
-              </div>
-              <div className="mt-3 pt-3 border-t border-neutral-100 text-xs text-neutral-500 flex justify-between">
-                <span>{product.variants?.reduce((acc, v) => acc + (v.quantity || 0), 0)} في المخزون</span>
-                <span>{product.variants?.length} متغيرات</span>
-              </div>
-            </div>
-          </div>
-        ))}
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-right text-sm">
+            <thead className="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th className="px-6 py-5 font-bold text-gray-500">الصورة</th>
+                <th className="px-6 py-5 font-bold text-gray-500">اسم المنتج</th>
+                <th className="px-6 py-5 font-bold text-gray-500">التصنيف</th>
+                <th className="px-6 py-5 font-bold text-gray-500">السعر</th>
+                <th className="px-6 py-5 font-bold text-gray-500">الحالة</th>
+                <th className="px-6 py-5 font-bold text-gray-500 text-left">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {products.map((product) => (
+                <tr key={product.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden border border-gray-200">
+                      {product.images?.[0] && (
+                        <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 font-bold text-gray-900 text-base">{product.name}</td>
+                  <td className="px-6 py-4 text-gray-600">
+                    {categories.find(c => c.id === product.category_id)?.name || '-'}
+                  </td>
+                  <td className="px-6 py-4 font-mono text-gray-700 font-medium text-base">
+                    {formatNumber(product.price.toLocaleString())} د.ج
+                    {product.discount_price && (
+                      <span className="mr-2 text-xs text-red-500 line-through">
+                        {formatNumber(product.discount_price.toLocaleString())}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={cn(
+                      "px-3 py-1.5 rounded-full text-xs font-bold",
+                      product.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+                    )}>
+                      {product.is_active ? 'نشط' : 'مسودة'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-left space-x-2 space-x-reverse">
+                    <button 
+                      onClick={() => handleOpenModal(product)}
+                      className="p-2.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-black hover:text-white transition-all"
+                      title="تعديل"
+                    >
+                      <Edit2 size={18} />
+                    </button>
+                    <button 
+                      onClick={() => confirmDelete(product.id)}
+                      className="p-2.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-600 hover:text-white transition-all"
+                      title="حذف"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Edit Modal */}
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, productId: null })}
+        onConfirm={handleDelete}
+        title="حذف المنتج"
+        message="هل أنت متأكد من أنك تريد حذف هذا المنتج؟ لا يمكن التراجع عن هذا الإجراء."
+        confirmText="نعم، احذف"
+        cancelText="إلغاء"
+        isDangerous={true}
+      />
+
+      {/* Edit/Add Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="p-6 border-b border-neutral-100 flex justify-between items-center sticky top-0 bg-white z-10">
-              <h3 className="text-xl font-serif font-bold">
-                {editingProduct ? 'تعديل المنتج' : 'منتج جديد'}
-              </h3>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-neutral-100 rounded-full">
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
+              <h2 className="text-2xl font-serif font-bold text-gray-900">
+                {editingProduct ? 'تعديل المنتج' : 'إضافة منتج جديد'}
+              </h2>
+              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                 <X size={24} />
               </button>
             </div>
             
-            <div className="p-6 space-y-8">
-              {/* Basic Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <form onSubmit={handleSubmit} className="p-8 space-y-8">
+              <div className="grid grid-cols-2 gap-8">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">اسم المنتج</label>
-                  <input 
-                    type="text" 
-                    className="w-full p-2 border border-neutral-200 rounded-lg"
-                    value={formData.name || ''}
+                  <label className="text-sm font-bold text-gray-700">اسم المنتج</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.name}
                     onChange={e => setFormData({...formData, name: e.target.value})}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black transition-colors bg-gray-50 focus:bg-white"
+                    placeholder="أدخل اسم المنتج"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">التصنيف</label>
-                  <select 
-                    className="w-full p-2 border border-neutral-200 rounded-lg"
+                  <label className="text-sm font-bold text-gray-700">التصنيف</label>
+                  <select
                     value={formData.category_id || ''}
                     onChange={e => setFormData({...formData, category_id: e.target.value})}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black transition-colors bg-gray-50 focus:bg-white"
                   >
                     <option value="">اختر التصنيف</option>
                     {categories.map(c => (
@@ -297,144 +306,209 @@ export default function Products() {
                     ))}
                   </select>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700">الوصف</label>
+                <textarea
+                  rows={4}
+                  value={formData.description || ''}
+                  onChange={e => setFormData({...formData, description: e.target.value})}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black transition-colors bg-gray-50 focus:bg-white"
+                  placeholder="اكتب وصفاً جذاباً للمنتج..."
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-8">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">السعر (د.ج)</label>
-                  <input 
-                    type="number" 
-                    className="w-full p-2 border border-neutral-200 rounded-lg"
-                    value={formData.price || ''}
-                    onChange={e => setFormData({...formData, price: e.target.value === '' ? 0 : Number(e.target.value)})}
+                  <label className="text-sm font-bold text-gray-700">السعر (د.ج)</label>
+                  <input
+                    type="number"
+                    required
+                    value={formData.price}
+                    onChange={e => setFormData({...formData, price: Number(e.target.value)})}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black transition-colors bg-gray-50 focus:bg-white"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">سعر الخصم (اختياري)</label>
-                  <input 
-                    type="number" 
-                    className="w-full p-2 border border-neutral-200 rounded-lg"
+                  <label className="text-sm font-bold text-gray-700">سعر التخفيض (اختياري)</label>
+                  <input
+                    type="number"
                     value={formData.discount_price || ''}
-                    onChange={e => setFormData({...formData, discount_price: e.target.value === '' ? 0 : Number(e.target.value)})}
-                  />
-                </div>
-                <div className="col-span-full space-y-2">
-                  <label className="text-sm font-medium">الوصف</label>
-                  <textarea 
-                    className="w-full p-2 border border-neutral-200 rounded-lg h-24"
-                    value={formData.description || ''}
-                    onChange={e => setFormData({...formData, description: e.target.value})}
-                  />
-                </div>
-                <div className="col-span-full space-y-2">
-                  <label className="text-sm font-medium">صور المنتج</label>
-                  <ImageUpload 
-                    value={formData.images || []}
-                    onChange={(urls) => setFormData({...formData, images: urls})}
-                    multiple={true}
-                    maxFiles={5}
+                    onChange={e => setFormData({...formData, discount_price: e.target.value ? Number(e.target.value) : null})}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black transition-colors bg-gray-50 focus:bg-white"
                   />
                 </div>
               </div>
 
-              {/* Variants */}
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h4 className="font-medium text-lg">المتغيرات (الألوان والمقاسات)</h4>
-                  <button 
-                    onClick={addVariant} 
-                    className="px-4 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-900 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-                  >
-                    <Plus size={16} />
-                    إضافة متغير
-                  </button>
+              <div className="space-y-3">
+                <label className="text-sm font-bold text-gray-700">صور المنتج</label>
+                <div className="flex gap-3 items-start">
+                  <div className="flex-1">
+                    <ImageUpload 
+                      onChange={handleImageUpload}
+                      placeholder="رفع صورة جديدة"
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 gap-4 mt-4">
+                  {formData.images?.map((url, idx) => (
+                    <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden border border-gray-200 shadow-sm bg-gray-50">
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(idx)}
+                        className="absolute top-2 right-2 p-1.5 bg-white/90 text-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white shadow-sm"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                <input
+                  type="checkbox"
+                  id="is_active"
+                  checked={formData.is_active}
+                  onChange={e => setFormData({...formData, is_active: e.target.checked})}
+                  className="w-5 h-5 rounded border-gray-300 text-black focus:ring-black cursor-pointer"
+                />
+                <label htmlFor="is_active" className="text-sm font-bold text-gray-900 cursor-pointer">نشر المنتج في المتجر</label>
+              </div>
+
+              {/* Variants Section */}
+              <div className="border-t border-gray-100 pt-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-bold text-gray-900">المتغيرات (الألوان والمقاسات)</h3>
                 </div>
                 
-                {variants.length === 0 ? (
-                  <div className="text-center py-8 border-2 border-dashed border-neutral-200 rounded-xl text-neutral-400">
-                    <p>لا توجد متغيرات مضافة لهذا المنتج.</p>
-                    <button onClick={addVariant} className="mt-2 text-sm text-black underline font-medium">إضافة أول متغير</button>
+                {/* Add Variant Form */}
+                <div className="grid grid-cols-4 gap-4 mb-6 bg-gray-50 p-5 rounded-xl border border-gray-100">
+                  <input
+                    placeholder="المقاس (مثال: M)"
+                    className="px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:border-black focus:outline-none"
+                    id="new-variant-size"
+                  />
+                  <input
+                    placeholder="اسم اللون (مثال: أحمر)"
+                    className="px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:border-black focus:outline-none col-span-2"
+                    id="new-variant-color"
+                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      placeholder="الكمية"
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:border-black focus:outline-none"
+                      id="new-variant-qty"
+                    />
                   </div>
-                ) : (
-                  <div className="space-y-3">
-                    {variants.map((variant, idx) => (
-                      <div key={idx} className="flex flex-wrap md:flex-nowrap gap-4 items-end bg-white border border-neutral-200 p-4 rounded-xl shadow-sm transition-all hover:border-neutral-300">
-                        <div className="w-full md:w-auto md:flex-1 space-y-1.5">
-                          <label className="text-xs font-medium text-neutral-500">المقاس</label>
-                          <input 
-                            type="text" 
-                            className="w-full p-2 border border-neutral-200 rounded-lg text-sm focus:ring-2 focus:ring-black/5 outline-none"
-                            placeholder="مثال: XL"
-                            value={variant.size || ''}
-                            onChange={e => updateVariant(idx, 'size', e.target.value)}
-                          />
-                        </div>
-                        <div className="w-full md:w-auto md:flex-1 space-y-1.5">
-                          <label className="text-xs font-medium text-neutral-500">اسم اللون</label>
-                          <input 
-                            type="text" 
-                            className="w-full p-2 border border-neutral-200 rounded-lg text-sm focus:ring-2 focus:ring-black/5 outline-none"
-                            placeholder="مثال: أحمر"
-                            value={variant.color_name || ''}
-                            onChange={e => updateVariant(idx, 'color_name', e.target.value)}
-                          />
-                        </div>
-                        <div className="w-full md:w-20 space-y-1.5">
-                          <label className="text-xs font-medium text-neutral-500">اللون</label>
-                          <input 
-                            type="color" 
-                            className="w-full h-[38px] rounded-lg cursor-pointer border border-neutral-200 p-1"
-                            value={variant.color_hex || '#000000'}
-                            onChange={e => updateVariant(idx, 'color_hex', e.target.value)}
-                          />
-                        </div>
-                        <div className="w-full md:w-32 space-y-1.5">
-                          <label className="text-xs font-medium text-neutral-500">الكمية</label>
-                          <input 
-                            type="number" 
-                            className="w-full p-2 border border-neutral-200 rounded-lg text-sm focus:ring-2 focus:ring-black/5 outline-none"
-                            placeholder="0"
-                            value={variant.quantity || ''}
-                            onChange={e => updateVariant(idx, 'quantity', e.target.value === '' ? 0 : Number(e.target.value))}
-                          />
-                        </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const sizeInput = document.getElementById('new-variant-size') as HTMLInputElement;
+                      const colorInput = document.getElementById('new-variant-color') as HTMLInputElement;
+                      const qtyInput = document.getElementById('new-variant-qty') as HTMLInputElement;
+
+                      if (!sizeInput.value || !colorInput.value) return;
+
+                      const newVariantBase = {
+                        size: sizeInput.value,
+                        color_name: colorInput.value,
+                        color_hex: '#000000',
+                        quantity: Number(qtyInput.value) || 0
+                      };
+
+                      if (editingProduct) {
+                        // If editing, save directly to DB
+                        const newVariant = { ...newVariantBase, product_id: editingProduct.id };
+                        const { data, error } = await supabase.from('product_variants').insert([newVariant]).select().single();
+                        if (data) {
+                          setVariants([...variants, data]);
+                        }
+                      } else {
+                        // If creating new, save to local state with temp ID
+                        const tempVariant = { 
+                          ...newVariantBase, 
+                          id: `temp-${Date.now()}`, 
+                          product_id: '', 
+                          created_at: new Date().toISOString() 
+                        };
+                        setVariants([...variants, tempVariant]);
+                      }
+
+                      sizeInput.value = '';
+                      colorInput.value = '';
+                      qtyInput.value = '';
+                    }}
+                    className="bg-black text-white rounded-lg hover:bg-gray-800 text-sm font-bold shadow-md"
+                  >
+                    إضافة
+                  </button>
+                </div>
+
+                <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                  {variants.map(v => (
+                    <div key={v.id} className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-xl text-sm shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-4">
+                        <span className="font-bold text-gray-900">{v.color_name}</span>
+                        <span className="text-gray-300">|</span>
+                        <span className="font-mono font-medium bg-gray-100 px-2 py-1 rounded">{v.size}</span>
+                      </div>
+                      <div className="flex items-center gap-6">
+                        <span className="font-mono text-gray-600 font-medium">الكمية: {formatNumber(v.quantity)}</span>
                         <button 
-                          onClick={() => removeVariant(idx)}
-                          className="p-2.5 text-neutral-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                          title="حذف المتغير"
+                          type="button"
+                          onClick={() => {
+                            if (v.id.startsWith('temp-')) {
+                              setVariants(variants.filter(item => item.id !== v.id));
+                            } else {
+                              setDeleteVariantModal({ isOpen: true, variantId: v.id });
+                            }
+                          }}
+                          className="text-gray-400 hover:text-red-600 transition-colors p-1"
                         >
                           <Trash2 size={18} />
                         </button>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    </div>
+                  ))}
+                  {variants.length === 0 && <p className="text-sm text-gray-400 text-center py-4 bg-gray-50 rounded-xl border border-dashed border-gray-200">لا توجد متغيرات مضافة بعد.</p>}
+                </div>
               </div>
-            </div>
 
-            <div className="p-6 border-t border-neutral-100 flex justify-end gap-3 sticky bottom-0 bg-white">
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 text-neutral-600 hover:bg-neutral-100 rounded-lg"
-              >
-                إلغاء
-              </button>
-              <button 
-                onClick={handleSave}
-                className="px-6 py-2 bg-black text-white rounded-lg hover:bg-neutral-800 flex items-center gap-2"
-              >
-                <Save size={18} /> حفظ المنتج
-              </button>
-            </div>
+              <div className="pt-6 flex justify-end gap-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-8 py-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors font-medium text-gray-700"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="submit"
+                  className="px-8 py-3 rounded-xl bg-black text-white hover:bg-gray-800 transition-colors font-bold shadow-lg shadow-gray-200"
+                >
+                  حفظ المنتج
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
-      {/* Delete Confirmation Modal */}
+
+      {/* Confirmation Modal for Variant */}
       <ConfirmationModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={confirmDelete}
-        title="حذف المنتج"
-        message="هل أنت متأكد أنك تريد حذف هذا المنتج؟ لا يمكن التراجع عن هذا الإجراء."
-        confirmText="حذف"
+        isOpen={deleteVariantModal.isOpen}
+        onClose={() => setDeleteVariantModal({ isOpen: false, variantId: null })}
+        onConfirm={handleDeleteVariant}
+        title="حذف المتغير"
+        message="هل أنت متأكد من أنك تريد حذف هذا المتغير؟"
+        confirmText="نعم، احذف"
         cancelText="إلغاء"
+        isDangerous={true}
       />
     </div>
   );

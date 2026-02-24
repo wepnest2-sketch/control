@@ -1,50 +1,24 @@
-export interface SiteSettings {
-  id: string;
-  site_name: string;
-  logo_url: string;
-  favicon_url?: string;
-  primary_color: string;
-  secondary_color: string;
-  announcement_text?: string;
-  hero_image_url?: string;
-  hero_title?: string;
-  hero_subtitle?: string;
-  delivery_company_name: string;
-  updated_at: string;
-}
-
-export interface Wilaya {
+export type Product = {
   id: string;
   name: string;
-  delivery_price_home: number;
-  delivery_price_desk: number;
-  is_active: boolean;
-}
-
-export interface Category {
-  id: string;
-  name: string;
-  image_url?: string;
-  display_order: number;
-  created_at: string;
-}
-
-export interface Product {
-  id: string;
-  name: string;
-  description?: string;
+  description: string | null;
   price: number;
-  discount_price?: number;
-  category_id?: string;
+  discount_price: number | null;
+  category_id: string | null;
   images: string[];
   is_active: boolean;
   created_at: string;
-  // Joins
-  category?: Category;
-  variants?: ProductVariant[];
-}
+};
 
-export interface ProductVariant {
+export type Category = {
+  id: string;
+  name: string;
+  image_url: string | null;
+  display_order: number;
+  created_at: string;
+};
+
+export type ProductVariant = {
   id: string;
   product_id: string;
   size: string;
@@ -52,44 +26,61 @@ export interface ProductVariant {
   color_hex: string;
   quantity: number;
   created_at: string;
-}
+};
 
-export interface Order {
+export type Order = {
   id: string;
   order_number: number;
   customer_first_name: string;
   customer_last_name: string;
   customer_phone: string;
-  wilaya_id?: string;
+  wilaya_id: string | null;
   municipality_name: string;
-  address?: string;
-  delivery_type: 'home' | 'post';
+  address: string | null;
+  delivery_type: 'home' | 'post' | null;
   total_price: number;
   status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
+  instagram_account: string | null;
   created_at: string;
-  updated_at: string;
-  confirmed_at?: string;
-  // Joins
-  items?: OrderItem[];
-  wilaya?: Wilaya;
-}
+  is_read?: boolean;
+  is_stock_deducted?: boolean;
+};
 
-export interface OrderItem {
+export type OrderItem = {
   id: string;
   order_id: string;
-  product_id?: string;
-  variant_id?: string;
+  product_id: string | null;
   product_name: string;
   price: number;
   quantity: number;
-  selected_size?: string;
-  selected_color?: string;
-}
+  selected_size: string | null;
+  selected_color: string | null;
+};
 
-export interface AboutUsContent {
+export type Wilaya = {
+  id: string;
+  name: string;
+  delivery_price_home: number;
+  delivery_price_desk: number;
+  is_active: boolean;
+};
+
+export type SiteSettings = {
+  id: string;
+  site_name: string;
+  logo_url: string;
+  primary_color: string;
+  secondary_color: string;
+  announcement_text: string | null;
+  hero_image_url: string | null;
+  hero_title: string | null;
+  hero_subtitle: string | null;
+  delivery_company_name: string;
+};
+
+export type AboutUsContent = {
   id: string;
   title: string;
   content: string;
-  features: any[]; // JSONB
-  updated_at: string;
-}
+  features: any;
+};

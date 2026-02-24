@@ -1,216 +1,161 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Wilaya } from '@/types/database';
-import { Search, Save } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { Wilaya } from '../types/database';
+import { Search, Save, Loader2, Plus } from 'lucide-react';
+import { formatNumber } from '../lib/utils';
 
 export default function Wilayas() {
   const [wilayas, setWilayas] = useState<Wilaya[]>([]);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editValues, setEditValues] = useState<{home: number, desk: number}>({ home: 0, desk: 0 });
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newWilaya, setNewWilaya] = useState({
+    id: '',
+    name: '',
+    delivery_price_home: 0,
+    delivery_price_desk: 0,
+    is_active: true
+  });
 
   useEffect(() => {
     fetchWilayas();
   }, []);
 
   async function fetchWilayas() {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('wilayas')
-      .select('*')
-      .order('id'); // Assuming ID is numeric string like "1", "2"... might need better sort
-    
-    if (data) {
-      // Sort numerically if IDs are strings like "1", "2"
-      const sorted = data.sort((a, b) => parseInt(a.id) - parseInt(b.id));
-      setWilayas(sorted);
-    }
+    const { data } = await supabase.from('wilayas').select('*').order('id', { ascending: true });
+    if (data) setWilayas(data);
     setLoading(false);
   }
 
-  function startEdit(wilaya: Wilaya) {
-    setEditingId(wilaya.id);
-    setEditValues({ home: wilaya.delivery_price_home, desk: wilaya.delivery_price_desk });
-  }
+  const handlePriceChange = (id: string, field: 'delivery_price_home' | 'delivery_price_desk', value: string) => {
+    setWilayas(prev => prev.map(w => w.id === id ? { ...w, [field]: Number(value) } : w));
+  };
 
-  async function saveEdit(id: string) {
-    const { error } = await supabase
-      .from('wilayas')
-      .update({
-        delivery_price_home: editValues.home,
-        delivery_price_desk: editValues.desk
-      })
-      .eq('id', id);
-
-    if (!error) {
-      setWilayas(wilayas.map(w => w.id === id ? { ...w, delivery_price_home: editValues.home, delivery_price_desk: editValues.desk } : w));
-      setEditingId(null);
-    } else {
-      alert('فشل تحديث السعر');
+  const updatePrice = async (id: string, field: 'delivery_price_home' | 'delivery_price_desk', value: number) => {
+    setUpdatingId(id);
+    try {
+      await supabase.from('wilayas').update({ [field]: value }).eq('id', id);
+    } catch (error) {
+      console.error('Error updating wilaya:', error);
+    } finally {
+      setUpdatingId(null);
     }
-  }
+  };
 
-  async function toggleActive(id: string, currentState: boolean) {
-    const { error } = await supabase
-      .from('wilayas')
-      .update({ is_active: !currentState })
-      .eq('id', id);
+  const toggleActive = async (id: string, currentStatus: boolean) => {
+    // Optimistic update
+    setWilayas(prev => prev.map(w => w.id === id ? { ...w, is_active: !currentStatus } : w));
     
-    if (!error) {
-      setWilayas(wilayas.map(w => w.id === id ? { ...w, is_active: !currentState } : w));
+    try {
+      await supabase.from('wilayas').update({ is_active: !currentStatus }).eq('id', id);
+    } catch (error) {
+      console.error('Error updating status:', error);
+      // Revert on error
+      setWilayas(prev => prev.map(w => w.id === id ? { ...w, is_active: currentStatus } : w));
     }
-  }
+  };
+
+  const handleAddWilaya = async () => {
+    if (!newWilaya.id || !newWilaya.name) return;
+    
+    try {
+      const { data, error } = await supabase.from('wilayas').insert([newWilaya]).select().single();
+      if (error) throw error;
+      if (data) {
+        setWilayas([...wilayas, data].sort((a, b) => Number(a.id) - Number(b.id)));
+        setIsAddModalOpen(false);
+        setNewWilaya({ id: '', name: '', delivery_price_home: 0, delivery_price_desk: 0, is_active: true });
+      }
+    } catch (error) {
+      console.error('Error adding wilaya:', error);
+      alert('حدث خطأ أثناء إضافة الولاية');
+    }
+  };
 
   const filteredWilayas = wilayas.filter(w => 
-    w.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    w.id.includes(searchQuery)
+    w.name.toLowerCase().includes(search.toLowerCase()) || 
+    w.id.includes(search)
   );
 
+  if (loading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin" /></div>;
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-serif font-bold text-neutral-900">الولايات والتوصيل</h2>
-        <p className="text-neutral-500 mt-1">إدارة مناطق التوصيل والأسعار.</p>
-      </div>
-
-      <div className="bg-white p-4 rounded-xl border border-neutral-200 shadow-sm">
-        <div className="relative">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400" size={20} />
-          <input 
-            type="text" 
-            placeholder="البحث عن ولاية..." 
-            className="w-full pr-10 pl-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-serif font-bold text-gray-900">الولايات والتوصيل</h1>
+        <div className="flex gap-4">
+          <button 
+            onClick={() => setIsAddModalOpen(true)}
+            className="flex items-center gap-2 bg-black text-white px-4 py-3 rounded-xl hover:bg-gray-800 transition-colors font-medium text-sm"
+          >
+            <Plus size={18} />
+            <span>إضافة ولاية</span>
+          </button>
+          <div className="relative">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input 
+              type="text" 
+              placeholder="بحث عن ولاية..." 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pr-10 pl-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black w-72 text-sm"
+            />
+          </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
-        {/* Mobile View: Card List */}
-        <div className="block md:hidden divide-y divide-neutral-100">
-          {filteredWilayas.map((wilaya) => (
-            <div key={wilaya.id} className="p-4 space-y-4">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                  <span className="font-mono text-xs text-neutral-400">{wilaya.id}</span>
-                  <span className="font-bold text-lg">{wilaya.name}</span>
-                </div>
-                <button 
-                  onClick={() => toggleActive(wilaya.id, wilaya.is_active)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium ${wilaya.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
-                >
-                  {wilaya.is_active ? 'نشط' : 'غير نشط'}
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 bg-neutral-50 p-3 rounded-xl">
-                <div className="space-y-1">
-                  <span className="text-xs text-neutral-500 block">توصيل للمنزل</span>
-                  {editingId === wilaya.id ? (
-                    <input 
-                      type="number" 
-                      className="w-full p-2 border rounded-lg text-sm"
-                      value={editValues.home}
-                      onChange={e => setEditValues({...editValues, home: Number(e.target.value)})}
-                    />
-                  ) : (
-                    <span className="font-bold">{wilaya.delivery_price_home} د.ج</span>
-                  )}
-                </div>
-                <div className="space-y-1">
-                  <span className="text-xs text-neutral-500 block">توصيل للمكتب</span>
-                  {editingId === wilaya.id ? (
-                    <input 
-                      type="number" 
-                      className="w-full p-2 border rounded-lg text-sm"
-                      value={editValues.desk}
-                      onChange={e => setEditValues({...editValues, desk: Number(e.target.value)})}
-                    />
-                  ) : (
-                    <span className="font-bold">{wilaya.delivery_price_desk} د.ج</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                {editingId === wilaya.id ? (
-                  <button 
-                    onClick={() => saveEdit(wilaya.id)} 
-                    className="w-full py-2 bg-black text-white rounded-lg font-medium"
-                  >
-                    حفظ التغييرات
-                  </button>
-                ) : (
-                  <button 
-                    onClick={() => startEdit(wilaya)} 
-                    className="text-sm text-neutral-500 underline font-medium"
-                  >
-                    تعديل الأسعار
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Desktop View: Table */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-sm text-right">
-            <thead className="bg-neutral-50 text-neutral-500 font-medium">
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+        <div className="max-h-[calc(100vh-250px)] overflow-y-auto">
+          <table className="w-full text-right text-sm">
+            <thead className="bg-gray-50 border-b border-gray-100 sticky top-0 z-10">
               <tr>
-                <th className="px-6 py-3 w-20">الرمز</th>
-                <th className="px-6 py-3">اسم الولاية</th>
-                <th className="px-6 py-3">توصيل للمنزل (د.ج)</th>
-                <th className="px-6 py-3">توصيل للمكتب (د.ج)</th>
-                <th className="px-6 py-3">الحالة</th>
-                <th className="px-6 py-3 text-left">إجراءات</th>
+                <th className="px-6 py-5 font-bold text-gray-500 w-24">الرمز</th>
+                <th className="px-6 py-5 font-bold text-gray-500">الولاية</th>
+                <th className="px-6 py-5 font-bold text-gray-500">توصيل للمنزل (د.ج)</th>
+                <th className="px-6 py-5 font-bold text-gray-500">توصيل للمكتب (د.ج)</th>
+                <th className="px-6 py-5 font-bold text-gray-500 text-left">الحالة</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-100">
+            <tbody className="divide-y divide-gray-100">
               {filteredWilayas.map((wilaya) => (
-                <tr key={wilaya.id} className="hover:bg-neutral-50/50">
-                  <td className="px-6 py-4 font-mono text-neutral-500">{wilaya.id}</td>
-                  <td className="px-6 py-4 font-medium">{wilaya.name}</td>
+                <tr key={wilaya.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 font-mono text-gray-400 font-bold">{formatNumber(wilaya.id)}</td>
+                  <td className="px-6 py-4 font-bold text-gray-900 text-base">{wilaya.name}</td>
                   <td className="px-6 py-4">
-                    {editingId === wilaya.id ? (
+                    <div className="relative w-32">
                       <input 
-                        type="number" 
-                        className="w-24 p-1 border rounded"
-                        value={editValues.home}
-                        onChange={e => setEditValues({...editValues, home: Number(e.target.value)})}
+                        type="number"
+                        value={wilaya.delivery_price_home}
+                        onChange={(e) => handlePriceChange(wilaya.id, 'delivery_price_home', e.target.value)}
+                        onBlur={(e) => updatePrice(wilaya.id, 'delivery_price_home', Number(e.target.value))}
+                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-black focus:outline-none bg-gray-50 focus:bg-white transition-colors"
                       />
-                    ) : (
-                      <span>{wilaya.delivery_price_home}</span>
-                    )}
+                      {updatingId === wilaya.id && (
+                        <div className="absolute left-2 top-1/2 -translate-y-1/2">
+                          <Loader2 size={14} className="animate-spin text-gray-400" />
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4">
-                    {editingId === wilaya.id ? (
+                    <div className="relative w-32">
                       <input 
-                        type="number" 
-                        className="w-24 p-1 border rounded"
-                        value={editValues.desk}
-                        onChange={e => setEditValues({...editValues, desk: Number(e.target.value)})}
+                        type="number"
+                        value={wilaya.delivery_price_desk}
+                        onChange={(e) => handlePriceChange(wilaya.id, 'delivery_price_desk', e.target.value)}
+                        onBlur={(e) => updatePrice(wilaya.id, 'delivery_price_desk', Number(e.target.value))}
+                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-black focus:outline-none bg-gray-50 focus:bg-white transition-colors"
                       />
-                    ) : (
-                      <span>{wilaya.delivery_price_desk}</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    <button 
-                      onClick={() => toggleActive(wilaya.id, wilaya.is_active)}
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${wilaya.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
-                    >
-                      {wilaya.is_active ? 'نشط' : 'غير نشط'}
-                    </button>
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-left">
-                    {editingId === wilaya.id ? (
-                      <button onClick={() => saveEdit(wilaya.id)} className="text-blue-600 font-medium hover:underline">حفظ</button>
-                    ) : (
-                      <button onClick={() => startEdit(wilaya)} className="text-neutral-500 hover:text-black">تعديل السعر</button>
-                    )}
+                    <button 
+                      onClick={() => toggleActive(wilaya.id, wilaya.is_active)}
+                      className={`w-12 h-7 rounded-full p-1 transition-colors duration-300 ease-in-out ${wilaya.is_active ? 'bg-black' : 'bg-gray-200'}`}
+                    >
+                      <div className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-300 ease-in-out ${wilaya.is_active ? '-translate-x-5' : 'translate-x-0'}`} />
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -218,6 +163,69 @@ export default function Wilayas() {
           </table>
         </div>
       </div>
+
+      {/* Add Wilaya Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center backdrop-blur-sm">
+          <div className="bg-white w-full max-w-md p-8 rounded-2xl shadow-2xl animate-in fade-in zoom-in duration-200">
+            <h2 className="text-2xl font-bold mb-6">إضافة ولاية جديدة</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">رمز الولاية</label>
+                <input
+                  type="text"
+                  value={newWilaya.id}
+                  onChange={(e) => setNewWilaya({ ...newWilaya, id: e.target.value })}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-black focus:outline-none"
+                  placeholder="مثال: 01"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">اسم الولاية</label>
+                <input
+                  type="text"
+                  value={newWilaya.name}
+                  onChange={(e) => setNewWilaya({ ...newWilaya, name: e.target.value })}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-black focus:outline-none"
+                  placeholder="مثال: أدرار"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">سعر التوصيل للمنزل</label>
+                <input
+                  type="number"
+                  value={newWilaya.delivery_price_home}
+                  onChange={(e) => setNewWilaya({ ...newWilaya, delivery_price_home: Number(e.target.value) })}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-black focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">سعر التوصيل للمكتب</label>
+                <input
+                  type="number"
+                  value={newWilaya.delivery_price_desk}
+                  onChange={(e) => setNewWilaya({ ...newWilaya, delivery_price_desk: Number(e.target.value) })}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-black focus:outline-none"
+                />
+              </div>
+              <div className="flex gap-3 mt-8">
+                <button
+                  onClick={handleAddWilaya}
+                  className="flex-1 bg-black text-white py-2.5 rounded-lg hover:bg-gray-800 transition-colors font-medium"
+                >
+                  حفظ
+                </button>
+                <button
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

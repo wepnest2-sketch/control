@@ -1,15 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabaseUrl = 'https://mdikhwuovponxkkjvfhl.supabase.co';
+// WARNING: This is a SERVICE ROLE key. It bypasses Row Level Security.
+// In a production environment, this should only be used on the server-side.
+const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kaWtod3VvdnBvbnhra2p2ZmhsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTgxNzQ1MiwiZXhwIjoyMDg3MzkzNDUyfQ.HskkqiYpL3Wlf_0kdm64RdCD_rZJQNaZQBT3dz7lt8Y';
 
-export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey && supabaseUrl !== 'YOUR_SUPABASE_URL');
-
-if (!isSupabaseConfigured && typeof window !== 'undefined') {
-  console.warn('Supabase is not configured. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your environment.');
-}
-
-export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder'
-);
+export const supabase = createClient(supabaseUrl, supabaseServiceKey);
