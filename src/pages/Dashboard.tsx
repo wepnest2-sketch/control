@@ -108,7 +108,26 @@ export default function Dashboard() {
             <h3 className="font-serif font-semibold text-lg">أحدث الطلبات</h3>
             <button className="text-sm text-neutral-500 hover:text-black">عرض الكل</button>
           </div>
-          <div className="overflow-x-auto">
+          
+          {/* Mobile View: Card List */}
+          <div className="block md:hidden divide-y divide-neutral-100">
+            {recentOrders.map((order) => (
+              <div key={order.id} className="p-4 space-y-2">
+                <div className="flex justify-between items-start">
+                  <span className="font-mono text-xs text-neutral-400">#{order.order_number}</span>
+                  <StatusBadge status={order.status} />
+                </div>
+                <div className="font-medium">{order.customer_first_name} {order.customer_last_name}</div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="font-bold">{order.total_price.toLocaleString()} د.ج</span>
+                  <span className="text-neutral-400">{new Date(order.created_at).toLocaleDateString('ar-DZ')}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop View: Table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm text-right">
               <thead className="bg-neutral-50 text-neutral-500 font-medium">
                 <tr>

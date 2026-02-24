@@ -88,65 +88,135 @@ export default function Wilayas() {
       </div>
 
       <div className="bg-white rounded-xl border border-neutral-200 shadow-sm overflow-hidden">
-        <table className="w-full text-sm text-right">
-          <thead className="bg-neutral-50 text-neutral-500 font-medium">
-            <tr>
-              <th className="px-6 py-3 w-20">الرمز</th>
-              <th className="px-6 py-3">اسم الولاية</th>
-              <th className="px-6 py-3">توصيل للمنزل (د.ج)</th>
-              <th className="px-6 py-3">توصيل للمكتب (د.ج)</th>
-              <th className="px-6 py-3">الحالة</th>
-              <th className="px-6 py-3 text-left">إجراءات</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-neutral-100">
-            {filteredWilayas.map((wilaya) => (
-              <tr key={wilaya.id} className="hover:bg-neutral-50/50">
-                <td className="px-6 py-4 font-mono text-neutral-500">{wilaya.id}</td>
-                <td className="px-6 py-4 font-medium">{wilaya.name}</td>
-                <td className="px-6 py-4">
+        {/* Mobile View: Card List */}
+        <div className="block md:hidden divide-y divide-neutral-100">
+          {filteredWilayas.map((wilaya) => (
+            <div key={wilaya.id} className="p-4 space-y-4">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <span className="font-mono text-xs text-neutral-400">{wilaya.id}</span>
+                  <span className="font-bold text-lg">{wilaya.name}</span>
+                </div>
+                <button 
+                  onClick={() => toggleActive(wilaya.id, wilaya.is_active)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium ${wilaya.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                >
+                  {wilaya.is_active ? 'نشط' : 'غير نشط'}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 bg-neutral-50 p-3 rounded-xl">
+                <div className="space-y-1">
+                  <span className="text-xs text-neutral-500 block">توصيل للمنزل</span>
                   {editingId === wilaya.id ? (
                     <input 
                       type="number" 
-                      className="w-24 p-1 border rounded"
+                      className="w-full p-2 border rounded-lg text-sm"
                       value={editValues.home}
                       onChange={e => setEditValues({...editValues, home: Number(e.target.value)})}
                     />
                   ) : (
-                    <span>{wilaya.delivery_price_home}</span>
+                    <span className="font-bold">{wilaya.delivery_price_home} د.ج</span>
                   )}
-                </td>
-                <td className="px-6 py-4">
+                </div>
+                <div className="space-y-1">
+                  <span className="text-xs text-neutral-500 block">توصيل للمكتب</span>
                   {editingId === wilaya.id ? (
                     <input 
                       type="number" 
-                      className="w-24 p-1 border rounded"
+                      className="w-full p-2 border rounded-lg text-sm"
                       value={editValues.desk}
                       onChange={e => setEditValues({...editValues, desk: Number(e.target.value)})}
                     />
                   ) : (
-                    <span>{wilaya.delivery_price_desk}</span>
+                    <span className="font-bold">{wilaya.delivery_price_desk} د.ج</span>
                   )}
-                </td>
-                <td className="px-6 py-4">
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                {editingId === wilaya.id ? (
                   <button 
-                    onClick={() => toggleActive(wilaya.id, wilaya.is_active)}
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${wilaya.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                    onClick={() => saveEdit(wilaya.id)} 
+                    className="w-full py-2 bg-black text-white rounded-lg font-medium"
                   >
-                    {wilaya.is_active ? 'نشط' : 'غير نشط'}
+                    حفظ التغييرات
                   </button>
-                </td>
-                <td className="px-6 py-4 text-left">
-                  {editingId === wilaya.id ? (
-                    <button onClick={() => saveEdit(wilaya.id)} className="text-blue-600 font-medium hover:underline">حفظ</button>
-                  ) : (
-                    <button onClick={() => startEdit(wilaya)} className="text-neutral-500 hover:text-black">تعديل السعر</button>
-                  )}
-                </td>
+                ) : (
+                  <button 
+                    onClick={() => startEdit(wilaya)} 
+                    className="text-sm text-neutral-500 underline font-medium"
+                  >
+                    تعديل الأسعار
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop View: Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-sm text-right">
+            <thead className="bg-neutral-50 text-neutral-500 font-medium">
+              <tr>
+                <th className="px-6 py-3 w-20">الرمز</th>
+                <th className="px-6 py-3">اسم الولاية</th>
+                <th className="px-6 py-3">توصيل للمنزل (د.ج)</th>
+                <th className="px-6 py-3">توصيل للمكتب (د.ج)</th>
+                <th className="px-6 py-3">الحالة</th>
+                <th className="px-6 py-3 text-left">إجراءات</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-neutral-100">
+              {filteredWilayas.map((wilaya) => (
+                <tr key={wilaya.id} className="hover:bg-neutral-50/50">
+                  <td className="px-6 py-4 font-mono text-neutral-500">{wilaya.id}</td>
+                  <td className="px-6 py-4 font-medium">{wilaya.name}</td>
+                  <td className="px-6 py-4">
+                    {editingId === wilaya.id ? (
+                      <input 
+                        type="number" 
+                        className="w-24 p-1 border rounded"
+                        value={editValues.home}
+                        onChange={e => setEditValues({...editValues, home: Number(e.target.value)})}
+                      />
+                    ) : (
+                      <span>{wilaya.delivery_price_home}</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    {editingId === wilaya.id ? (
+                      <input 
+                        type="number" 
+                        className="w-24 p-1 border rounded"
+                        value={editValues.desk}
+                        onChange={e => setEditValues({...editValues, desk: Number(e.target.value)})}
+                      />
+                    ) : (
+                      <span>{wilaya.delivery_price_desk}</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    <button 
+                      onClick={() => toggleActive(wilaya.id, wilaya.is_active)}
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${wilaya.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                    >
+                      {wilaya.is_active ? 'نشط' : 'غير نشط'}
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-left">
+                    {editingId === wilaya.id ? (
+                      <button onClick={() => saveEdit(wilaya.id)} className="text-blue-600 font-medium hover:underline">حفظ</button>
+                    ) : (
+                      <button onClick={() => startEdit(wilaya)} className="text-neutral-500 hover:text-black">تعديل السعر</button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

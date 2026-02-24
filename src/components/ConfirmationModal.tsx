@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertTriangle, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -28,8 +29,8 @@ export function ConfirmationModal({
     <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl w-full max-w-md p-6 shadow-2xl transform transition-all">
         <div className="flex justify-between items-start mb-4">
-          <div className="flex items-center gap-3 text-red-600">
-            <div className="p-2 bg-red-50 rounded-full">
+          <div className={cn("flex items-center gap-3", isDangerous ? "text-red-600" : "text-black")}>
+            <div className={cn("p-2 rounded-full", isDangerous ? "bg-red-50" : "bg-neutral-100")}>
               <AlertTriangle size={24} />
             </div>
             <h3 className="text-lg font-bold text-neutral-900">{title}</h3>

@@ -176,6 +176,7 @@ export default function Products() {
       fetchData();
     }
     setProductToDelete(null);
+    setIsDeleteModalOpen(false);
   }
 
   // Variant Helpers
@@ -220,16 +221,16 @@ export default function Products() {
                   <ImageIcon size={32} />
                 </div>
               )}
-              <div className="absolute top-2 left-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute top-2 left-2 flex gap-2 transition-opacity">
                 <button 
                   onClick={() => handleOpenModal(product)}
-                  className="p-2 bg-white rounded-full shadow-sm hover:bg-neutral-50"
+                  className="p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-sm hover:bg-white text-neutral-900 border border-neutral-200/50"
                 >
                   <Edit2 size={16} />
                 </button>
                 <button 
                   onClick={() => handleDelete(product.id)}
-                  className="p-2 bg-white text-red-500 rounded-full shadow-sm hover:bg-red-50"
+                  className="p-2 bg-white/90 backdrop-blur-sm text-red-500 rounded-full shadow-sm hover:bg-red-50 border border-neutral-200/50"
                 >
                   <Trash2 size={16} />
                 </button>
@@ -334,50 +335,77 @@ export default function Products() {
               </div>
 
               {/* Variants */}
-              <div>
-                <div className="flex justify-between items-center mb-4">
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
                   <h4 className="font-medium text-lg">المتغيرات (الألوان والمقاسات)</h4>
-                  <button onClick={addVariant} className="text-sm text-blue-600 hover:underline">+ إضافة متغير</button>
+                  <button 
+                    onClick={addVariant} 
+                    className="px-4 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-900 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                  >
+                    <Plus size={16} />
+                    إضافة متغير
+                  </button>
                 </div>
-                <div className="space-y-3">
-                  {variants.map((variant, idx) => (
-                    <div key={idx} className="flex gap-4 items-end bg-neutral-50 p-4 rounded-lg">
-                      <div className="flex-1 space-y-1">
-                        <label className="text-xs text-neutral-500">المقاس</label>
-                        <input 
-                          type="text" 
-                          className="w-full p-1.5 border border-neutral-200 rounded text-sm"
-                          value={variant.size || ''}
-                          onChange={e => updateVariant(idx, 'size', e.target.value)}
-                        />
+                
+                {variants.length === 0 ? (
+                  <div className="text-center py-8 border-2 border-dashed border-neutral-200 rounded-xl text-neutral-400">
+                    <p>لا توجد متغيرات مضافة لهذا المنتج.</p>
+                    <button onClick={addVariant} className="mt-2 text-sm text-black underline font-medium">إضافة أول متغير</button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {variants.map((variant, idx) => (
+                      <div key={idx} className="flex flex-wrap md:flex-nowrap gap-4 items-end bg-white border border-neutral-200 p-4 rounded-xl shadow-sm transition-all hover:border-neutral-300">
+                        <div className="w-full md:w-auto md:flex-1 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500">المقاس</label>
+                          <input 
+                            type="text" 
+                            className="w-full p-2 border border-neutral-200 rounded-lg text-sm focus:ring-2 focus:ring-black/5 outline-none"
+                            placeholder="مثال: XL"
+                            value={variant.size || ''}
+                            onChange={e => updateVariant(idx, 'size', e.target.value)}
+                          />
+                        </div>
+                        <div className="w-full md:w-auto md:flex-1 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500">اسم اللون</label>
+                          <input 
+                            type="text" 
+                            className="w-full p-2 border border-neutral-200 rounded-lg text-sm focus:ring-2 focus:ring-black/5 outline-none"
+                            placeholder="مثال: أحمر"
+                            value={variant.color_name || ''}
+                            onChange={e => updateVariant(idx, 'color_name', e.target.value)}
+                          />
+                        </div>
+                        <div className="w-full md:w-20 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500">اللون</label>
+                          <input 
+                            type="color" 
+                            className="w-full h-[38px] rounded-lg cursor-pointer border border-neutral-200 p-1"
+                            value={variant.color_hex || '#000000'}
+                            onChange={e => updateVariant(idx, 'color_hex', e.target.value)}
+                          />
+                        </div>
+                        <div className="w-full md:w-32 space-y-1.5">
+                          <label className="text-xs font-medium text-neutral-500">الكمية</label>
+                          <input 
+                            type="number" 
+                            className="w-full p-2 border border-neutral-200 rounded-lg text-sm focus:ring-2 focus:ring-black/5 outline-none"
+                            placeholder="0"
+                            value={variant.quantity || ''}
+                            onChange={e => updateVariant(idx, 'quantity', e.target.value === '' ? 0 : Number(e.target.value))}
+                          />
+                        </div>
+                        <button 
+                          onClick={() => removeVariant(idx)}
+                          className="p-2.5 text-neutral-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          title="حذف المتغير"
+                        >
+                          <Trash2 size={18} />
+                        </button>
                       </div>
-                      <div className="flex-1 space-y-1">
-                        <label className="text-xs text-neutral-500">اسم اللون</label>
-                        <input 
-                          type="text" 
-                          className="w-full p-1.5 border border-neutral-200 rounded text-sm"
-                          value={variant.color_name || ''}
-                          onChange={e => updateVariant(idx, 'color_name', e.target.value)}
-                        />
-                      </div>
-                      <div className="w-24 space-y-1">
-                        <label className="text-xs text-neutral-500">الكمية</label>
-                        <input 
-                          type="number" 
-                          className="w-full p-1.5 border border-neutral-200 rounded text-sm"
-                          value={variant.quantity || ''}
-                          onChange={e => updateVariant(idx, 'quantity', e.target.value === '' ? 0 : Number(e.target.value))}
-                        />
-                      </div>
-                      <button 
-                        onClick={() => removeVariant(idx)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 

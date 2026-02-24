@@ -67,6 +67,8 @@ export interface Order {
   total_price: number;
   status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
   created_at: string;
+  updated_at: string;
+  confirmed_at?: string;
   // Joins
   items?: OrderItem[];
   wilaya?: Wilaya;
@@ -76,6 +78,7 @@ export interface OrderItem {
   id: string;
   order_id: string;
   product_id?: string;
+  variant_id?: string;
   product_name: string;
   price: number;
   quantity: number;

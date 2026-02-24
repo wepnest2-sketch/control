@@ -123,11 +123,11 @@ export default function Categories() {
               <h3 className="font-medium text-lg truncate">{category.name}</h3>
               <p className="text-xs text-neutral-500">الترتيب: {category.display_order}</p>
             </div>
-            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button onClick={() => handleOpenModal(category)} className="p-2 hover:bg-neutral-100 rounded-full">
+            <div className="flex gap-2 transition-opacity">
+              <button onClick={() => handleOpenModal(category)} className="p-2 bg-neutral-50 hover:bg-neutral-100 rounded-full text-neutral-600">
                 <Edit2 size={16} />
               </button>
-              <button onClick={() => handleDelete(category.id)} className="p-2 hover:bg-red-50 text-red-500 rounded-full">
+              <button onClick={() => handleDelete(category.id)} className="p-2 bg-red-50 hover:bg-red-100 text-red-500 rounded-full">
                 <Trash2 size={16} />
               </button>
             </div>
