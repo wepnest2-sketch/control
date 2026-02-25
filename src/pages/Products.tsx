@@ -51,13 +51,26 @@ export default function Products() {
 
   async function fetchVariants(productId: string) {
     const { data } = await supabase.from('product_variants').select('*').eq('product_id', productId);
-    if (data) setVariants(data);
+    if (data) {
+      // Normalize quantities to ensure Western digits
+      const normalizedVariants = data.map(variant => ({
+        ...variant,
+        quantity: Number(variant.quantity)
+      }));
+      setVariants(normalizedVariants);
+    }
   }
 
   const handleOpenModal = async (product?: Product) => {
     if (product) {
       setEditingProduct(product);
-      setFormData(product);
+      // Normalize numbers to ensure Western digits
+      const normalizedProduct = {
+        ...product,
+        price: Number(product.price),
+        discount_price: product.discount_price ? Number(product.discount_price) : null
+      };
+      setFormData(normalizedProduct);
       await fetchVariants(product.id);
     } else {
       setEditingProduct(null);
@@ -328,7 +341,8 @@ export default function Products() {
                     dir="ltr"
                     value={formData.price || ''}
                     onChange={e => setFormData({...formData, price: Number(e.target.value)})}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black transition-colors bg-gray-50 focus:bg-white text-right"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black transition-colors bg-gray-50 focus:bg-white"
+                    style={{ fontFamily: 'monospace', direction: 'ltr' }}
                   />
                 </div>
                 <div className="space-y-2">
@@ -338,7 +352,8 @@ export default function Products() {
                     dir="ltr"
                     value={formData.discount_price || ''}
                     onChange={e => setFormData({...formData, discount_price: e.target.value ? Number(e.target.value) : null})}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black transition-colors bg-gray-50 focus:bg-white text-right"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black transition-colors bg-gray-50 focus:bg-white"
+                    style={{ fontFamily: 'monospace', direction: 'ltr' }}
                   />
                 </div>
               </div>
@@ -404,7 +419,8 @@ export default function Products() {
                       type="number"
                       dir="ltr"
                       placeholder="الكمية"
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:border-black focus:outline-none text-right"
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:border-black focus:outline-none"
+                      style={{ fontFamily: 'monospace', direction: 'ltr' }}
                       id="new-variant-qty"
                     />
                   </div>

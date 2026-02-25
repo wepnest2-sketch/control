@@ -8,12 +8,16 @@ export function cn(...inputs: ClassValue[]) {
 export function formatNumber(num: number | string): string {
   if (num === null || num === undefined) return '';
   
-  // If it's a number, format it with English locale to ensure Western digits
-  if (typeof num === 'number') {
-    return num.toLocaleString('en-US');
-  }
-
-  // If it's a string, replace Eastern Arabic digits with Western
+  // Convert to string first to handle both numbers and strings consistently
   const str = num.toString();
-  return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+  
+  // Replace Eastern Arabic digits with Western digits
+  const westernDigits = str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+  
+  // Parse as number and format with English locale
+  const parsedNum = Number(westernDigits);
+  
+  if (isNaN(parsedNum)) return westernDigits;
+  
+  return parsedNum.toLocaleString('en-US');
 }
