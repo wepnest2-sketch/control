@@ -93,16 +93,23 @@ export default function Products() {
     try {
       let productId = editingProduct?.id;
 
+      // Normalize all number fields to ensure Western digits before saving
+      const normalizedFormData = {
+        ...formData,
+        price: Number(formData.price?.toString().replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)])),
+        discount_price: formData.discount_price ? Number(formData.discount_price.toString().replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)])) : null
+      };
+
       if (editingProduct) {
         const { error } = await supabase
           .from('products')
-          .update(formData)
+          .update(normalizedFormData)
           .eq('id', editingProduct.id);
         if (error) throw error;
       } else {
         const { data, error } = await supabase
           .from('products')
-          .insert([formData])
+          .insert([normalizedFormData])
           .select()
           .single();
         if (error) throw error;
@@ -115,7 +122,7 @@ export default function Products() {
             size: v.size,
             color_name: v.color_name,
             color_hex: v.color_hex,
-            quantity: v.quantity
+            quantity: Number(v.quantity?.toString().replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]))
           }));
           
           const { error: variantsError } = await supabase

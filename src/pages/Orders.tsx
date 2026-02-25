@@ -389,7 +389,7 @@ export default function Orders() {
                               <span className="font-mono font-medium">x {item.quantity}</span>
                             </p>
                           </div>
-                          <p className="font-mono font-bold text-gray-900">{(item.price * item.quantity).toLocaleString()} د.ج</p>
+                          <p className="font-mono font-bold text-gray-900">{(item.price * item.quantity).toLocaleString('en-US')} د.ج</p>
                         </div>
                       </div>
                     </div>
@@ -397,7 +397,7 @@ export default function Orders() {
                 </div>
                 <div className="mt-6 pt-6 border-t border-gray-100 flex justify-between items-center">
                   <span className="text-lg font-bold text-gray-900">المجموع الكلي</span>
-                  <span className="text-2xl font-serif font-bold text-black">{selectedOrder.total_price.toLocaleString()} د.ج</span>
+                  <span className="text-2xl font-serif font-bold text-black">{selectedOrder.total_price.toLocaleString('en-US')} د.ج</span>
                 </div>
               </div>
             </div>

@@ -53,7 +53,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
         <StatCard 
           title="إجمالي المبيعات" 
-          value={`${formatNumber(stats.totalRevenue.toLocaleString())} د.ج`} 
+          value={`${formatNumber(stats.totalRevenue.toLocaleString('en-US'))} د.ج`} 
           icon={DollarSign} 
         />
         <StatCard 
