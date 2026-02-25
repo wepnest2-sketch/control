@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Order } from '../types/database';
-import { Eye, Search, Filter, X, CheckCircle, Loader2, XCircle, Printer, Trash2 } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { Eye, Search, Filter, X, CheckCircle, Loader2, XCircle, Printer, Trash2, Copy } from 'lucide-react';
+import { cn, formatNumber } from '../lib/utils';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import ConfirmationModal from '../components/ConfirmationModal';
+import { useLanguage } from '../lib/i18n';
 
 export default function Orders() {
+  const { t, language } = useLanguage();
   const [orders, setOrders] = useState<Order[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<any>(null); // Order with items
@@ -130,11 +132,11 @@ export default function Orders() {
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'pending': return 'قيد الانتظار';
-      case 'confirmed': return 'تم التأكيد';
-      case 'shipped': return 'تم الشحن';
-      case 'delivered': return 'تم التوصيل';
-      case 'cancelled': return 'ملغى';
+      case 'pending': return t('pending');
+      case 'confirmed': return t('confirmed');
+      case 'shipped': return t('shipped');
+      case 'delivered': return t('delivered');
+      case 'cancelled': return t('cancelled');
       default: return status;
     }
   };
@@ -143,22 +145,26 @@ export default function Orders() {
     window.print();
   };
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-serif font-bold text-gray-900">الطلبات</h1>
+        <h1 className="text-3xl font-serif font-bold text-gray-900">{t('orders')}</h1>
         <div className="flex gap-2">
           <select 
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-black text-sm font-medium"
           >
-            <option value="all">جميع الحالات</option>
-            <option value="pending">قيد الانتظار</option>
-            <option value="confirmed">تم التأكيد</option>
-            <option value="shipped">تم الشحن</option>
-            <option value="delivered">تم التوصيل</option>
-            <option value="cancelled">ملغى</option>
+            <option value="all">{t('all_statuses')}</option>
+            <option value="pending">{t('pending')}</option>
+            <option value="confirmed">{t('confirmed')}</option>
+            <option value="shipped">{t('shipped')}</option>
+            <option value="delivered">{t('delivered')}</option>
+            <option value="cancelled">{t('cancelled')}</option>
           </select>
         </div>
       </div>
@@ -168,9 +174,15 @@ export default function Orders() {
         {orders.map((order) => (
           <div key={order.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-4 active:scale-[0.98] transition-transform" onClick={() => fetchOrderDetails(order.id)}>
             <div className="flex justify-between items-start">
-              <div>
+              <div className="flex items-center gap-2">
                 <span className="font-mono font-bold text-lg">#{order.order_number}</span>
-                <p className="text-xs text-gray-500 font-mono mt-1">{format(new Date(order.created_at), 'd MMM yyyy', { locale: ar }).replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)])}</p>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); copyToClipboard(order.order_number.toString()); }}
+                  className="text-gray-400 hover:text-black p-1"
+                >
+                  <Copy size={14} />
+                </button>
+                <p className="text-xs text-gray-500 font-mono mt-1">{format(new Date(order.created_at), 'd MMM yyyy', { locale: language === 'ar' ? ar : undefined })}</p>
               </div>
               <span className={cn("px-3 py-1.5 rounded-full text-xs font-bold", getStatusColor(order.status))}>
                 {getStatusLabel(order.status)}
@@ -179,12 +191,20 @@ export default function Orders() {
             
             <div>
               <p className="font-bold text-gray-900">{order.customer_first_name} {order.customer_last_name}</p>
-              <p className="text-sm text-gray-500 font-mono" dir="ltr">{order.customer_phone}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-gray-500 font-mono" dir="ltr">{order.customer_phone}</p>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); copyToClipboard(order.customer_phone); }}
+                  className="text-gray-400 hover:text-black p-1"
+                >
+                  <Copy size={12} />
+                </button>
+              </div>
               <p className="text-sm text-gray-600 mt-1">{(order as any).wilayas?.name || order.wilaya_id}</p>
             </div>
 
             <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-              <span className="font-mono font-bold text-lg">{order.total_price.toLocaleString('en-US')} د.ج</span>
+              <span className="font-mono font-bold text-lg">{formatNumber(order.total_price)} {t('currency')}</span>
               
               <div className="flex gap-2">
                 {order.status === 'pending' && (
@@ -221,28 +241,46 @@ export default function Orders() {
           <table className="w-full text-right text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
-                <th className="px-6 py-5 font-bold text-gray-500">رقم الطلب</th>
-                <th className="px-6 py-5 font-bold text-gray-500">العميل</th>
-                <th className="px-6 py-5 font-bold text-gray-500">الولاية</th>
-                <th className="px-6 py-5 font-bold text-gray-500">الإجمالي</th>
-                <th className="px-6 py-5 font-bold text-gray-500">التاريخ</th>
-                <th className="px-6 py-5 font-bold text-gray-500">الحالة</th>
-                <th className="px-6 py-5 font-bold text-gray-500 text-left">إجراءات</th>
+                <th className="px-6 py-5 font-bold text-gray-500">{t('order_number')}</th>
+                <th className="px-6 py-5 font-bold text-gray-500">{t('customer')}</th>
+                <th className="px-6 py-5 font-bold text-gray-500">{t('wilaya')}</th>
+                <th className="px-6 py-5 font-bold text-gray-500">{t('total')}</th>
+                <th className="px-6 py-5 font-bold text-gray-500">{t('date')}</th>
+                <th className="px-6 py-5 font-bold text-gray-500">{t('status')}</th>
+                <th className="px-6 py-5 font-bold text-gray-500 text-left">{t('actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {orders.map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => fetchOrderDetails(order.id)}>
-                  <td className="px-6 py-4 font-mono font-bold">#{order.order_number.toString()}</td>
+                  <td className="px-6 py-4 font-mono font-bold group relative">
+                    #{order.order_number.toString()}
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); copyToClipboard(order.order_number.toString()); }}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-black p-1 transition-opacity"
+                      title={t('copy')}
+                    >
+                      <Copy size={14} />
+                    </button>
+                  </td>
                   <td className="px-6 py-4">
                     <div className="font-bold text-gray-900 text-base">{order.customer_first_name} {order.customer_last_name}</div>
-                    <div className="text-xs text-gray-400 font-mono mt-1" dir="ltr">{order.customer_phone}</div>
+                    <div className="text-xs text-gray-400 font-mono mt-1 flex items-center gap-2" dir="ltr">
+                      {order.customer_phone}
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); copyToClipboard(order.customer_phone); }}
+                        className="text-gray-300 hover:text-black p-0.5"
+                        title={t('copy')}
+                      >
+                        <Copy size={10} />
+                      </button>
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-gray-600 font-medium">
                     {(order as any).wilayas?.name || order.wilaya_id}
                   </td>
-                  <td className="px-6 py-4 font-mono font-bold text-base">{order.total_price.toLocaleString('en-US')} د.ج</td>
-                  <td className="px-6 py-4 text-gray-500 font-mono">{format(new Date(order.created_at), 'd MMM yyyy', { locale: ar }).replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)])}</td>
+                  <td className="px-6 py-4 font-mono font-bold text-base">{formatNumber(order.total_price)} {t('currency')}</td>
+                  <td className="px-6 py-4 text-gray-500 font-mono">{format(new Date(order.created_at), 'd MMM yyyy', { locale: language === 'ar' ? ar : undefined })}</td>
                   <td className="px-6 py-4">
                     <span className={cn("px-3 py-1.5 rounded-full text-xs font-bold", getStatusColor(order.status))}>
                       {getStatusLabel(order.status)}
@@ -258,20 +296,20 @@ export default function Orders() {
                           }}
                           disabled={updatingOrderId === order.id}
                           className="p-2.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-600 hover:text-white transition-all disabled:opacity-50"
-                          title="تأكيد الطلب"
+                          title={t('confirm_order')}
                         >
                           {updatingOrderId === order.id ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}
                         </button>
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (confirm('هل أنت متأكد من رفض هذا الطلب؟')) {
+                            if (confirm(t('reject_order') + '?')) {
                               updateStatus(order.id, 'cancelled');
                             }
                           }}
                           disabled={updatingOrderId === order.id}
                           className="p-2.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all disabled:opacity-50"
-                          title="رفض الطلب"
+                          title={t('reject_order')}
                         >
                           <XCircle size={18} />
                         </button>
@@ -283,7 +321,7 @@ export default function Orders() {
                         fetchOrderDetails(order.id);
                       }}
                       className="p-2.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-black hover:text-white transition-all"
-                      title="معاينة"
+                      title={t('order_details')}
                     >
                       <Eye size={18} />
                     </button>
@@ -294,7 +332,7 @@ export default function Orders() {
                       }}
                       disabled={updatingOrderId === order.id}
                       className="p-2.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all disabled:opacity-50"
-                      title="حذف الطلب"
+                      title={t('delete_order')}
                     >
                       <Trash2 size={18} />
                     </button>
@@ -311,15 +349,15 @@ export default function Orders() {
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-end backdrop-blur-sm print:bg-white print:static print:block print:h-auto print:z-auto">
           <div className="bg-white w-full max-w-lg h-full overflow-y-auto p-8 shadow-2xl animate-in slide-in-from-left duration-300 print:shadow-none print:w-full print:max-w-none print:h-auto print:overflow-visible print:animate-none">
             <div className="flex items-center justify-between mb-8 print:hidden">
-              <h2 className="text-3xl font-serif font-bold text-gray-900">طلب #{selectedOrder.order_number}</h2>
+              <h2 className="text-3xl font-serif font-bold text-gray-900">{t('order')} #{selectedOrder.order_number}</h2>
               <div className="flex gap-2">
-                <button onClick={handlePrint} className="p-2 hover:bg-gray-100 rounded-full transition-colors" title="طباعة">
+                <button onClick={handlePrint} className="p-2 hover:bg-gray-100 rounded-full transition-colors" title={t('print')}>
                   <Printer size={24} />
                 </button>
                 <button 
                   onClick={() => deleteOrder(selectedOrder.id)} 
                   className="p-2 hover:bg-red-50 text-red-600 rounded-full transition-colors" 
-                  title="حذف الطلب"
+                  title={t('delete_order')}
                 >
                   <Trash2 size={24} />
                 </button>
@@ -331,44 +369,44 @@ export default function Orders() {
 
             {/* Print Header */}
             <div className="hidden print:block mb-8 text-center border-b pb-4">
-              <h1 className="text-4xl font-bold mb-2">فاتورة طلب</h1>
+              <h1 className="text-4xl font-bold mb-2">{t('order_invoice')}</h1>
               <p className="text-xl">#{selectedOrder.order_number}</p>
             </div>
 
             <div className="space-y-8 print:space-y-4">
               {/* Status Control */}
               <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 space-y-3 print:hidden">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">تحديث الحالة</label>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('update_status')}</label>
                 <select 
                   value={selectedOrder.status}
                   onChange={(e) => updateStatus(selectedOrder.id, e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black bg-white font-medium"
                 >
-                  <option value="pending">قيد الانتظار</option>
-                  <option value="confirmed">تم التأكيد</option>
-                  <option value="shipped">تم الشحن</option>
-                  <option value="delivered">تم التوصيل</option>
-                  <option value="cancelled">ملغى</option>
+                  <option value="pending">{t('pending')}</option>
+                  <option value="confirmed">{t('confirmed')}</option>
+                  <option value="shipped">{t('shipped')}</option>
+                  <option value="delivered">{t('delivered')}</option>
+                  <option value="cancelled">{t('cancelled')}</option>
                 </select>
               </div>
 
               {/* Customer Info */}
               <div>
-                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">معلومات العميل</h3>
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">{t('customer_info')}</h3>
                 <div className="space-y-3 text-base text-gray-700">
-                  <p className="flex justify-between"><span className="text-gray-400">الاسم:</span> <span className="font-medium">{selectedOrder.customer_first_name} {selectedOrder.customer_last_name}</span></p>
-                  <p className="flex justify-between"><span className="text-gray-400">الهاتف:</span> <span className="font-mono font-medium">{selectedOrder.customer_phone}</span></p>
-                  <p className="flex justify-between"><span className="text-gray-400">العنوان:</span> <span className="font-medium text-left">{selectedOrder.address}, {selectedOrder.municipality_name}</span></p>
-                  <p className="flex justify-between"><span className="text-gray-400">الولاية:</span> <span className="font-medium">{selectedOrder.wilayas?.name}</span></p>
+                  <p className="flex justify-between"><span className="text-gray-400">{t('name')}:</span> <span className="font-medium">{selectedOrder.customer_first_name} {selectedOrder.customer_last_name}</span></p>
+                  <p className="flex justify-between"><span className="text-gray-400">{t('phone')}:</span> <span className="font-mono font-medium">{selectedOrder.customer_phone}</span></p>
+                  <p className="flex justify-between"><span className="text-gray-400">{t('address')}:</span> <span className="font-medium text-left">{selectedOrder.address}, {selectedOrder.municipality_name}</span></p>
+                  <p className="flex justify-between"><span className="text-gray-400">{t('wilaya')}:</span> <span className="font-medium">{selectedOrder.wilayas?.name}</span></p>
                   {selectedOrder.instagram_account && (
-                    <p className="flex justify-between"><span className="text-gray-400">انستغرام:</span> <span className="font-medium text-blue-600">{selectedOrder.instagram_account}</span></p>
+                    <p className="flex justify-between"><span className="text-gray-400">{t('instagram')}:</span> <span className="font-medium text-blue-600">{selectedOrder.instagram_account}</span></p>
                   )}
                 </div>
               </div>
 
               {/* Items */}
               <div>
-                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">المنتجات</h3>
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">{t('items')}</h3>
                 <div className="space-y-4">
                   {selectedOrder.order_items.map((item: any) => (
                     <div key={item.id} className="flex gap-4 items-start p-4 bg-gray-50 rounded-xl border border-gray-100">
@@ -389,15 +427,15 @@ export default function Orders() {
                               <span className="font-mono font-medium">x {item.quantity}</span>
                             </p>
                           </div>
-                          <p className="font-mono font-bold text-gray-900">{(item.price * item.quantity).toLocaleString('en-US')} د.ج</p>
+                          <p className="font-mono font-bold text-gray-900">{formatNumber(item.price * item.quantity)} {t('currency')}</p>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
                 <div className="mt-6 pt-6 border-t border-gray-100 flex justify-between items-center">
-                  <span className="text-lg font-bold text-gray-900">المجموع الكلي</span>
-                  <span className="text-2xl font-serif font-bold text-black">{selectedOrder.total_price.toLocaleString('en-US')} د.ج</span>
+                  <span className="text-lg font-bold text-gray-900">{t('total_amount')}</span>
+                  <span className="text-2xl font-serif font-bold text-black">{formatNumber(selectedOrder.total_price)} {t('currency')}</span>
                 </div>
               </div>
             </div>
@@ -409,10 +447,10 @@ export default function Orders() {
         isOpen={deleteModal.isOpen}
         onClose={() => setDeleteModal({ isOpen: false, orderId: null })}
         onConfirm={confirmDeleteOrder}
-        title="حذف الطلب"
-        message="هل أنت متأكد من حذف هذا الطلب نهائياً؟ سيتم حذف جميع البيانات المتعلقة به ولا يمكن التراجع عن هذا الإجراء."
-        confirmText="نعم، احذف"
-        cancelText="إلغاء"
+        title={t('delete_order')}
+        message={t('confirm_delete_order')}
+        confirmText={t('yes_delete')}
+        cancelText={t('cancel')}
         isDangerous={true}
       />
     </div>

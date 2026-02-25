@@ -12,6 +12,11 @@ export default function NotificationBell() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Request notification permission on mount
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
     fetchNotifications();
 
     // Subscribe to new orders
@@ -23,8 +28,17 @@ export default function NotificationBell() {
         (payload) => {
           setUnreadCount(prev => prev + 1);
           setNotifications(prev => [payload.new, ...prev]);
+          
           // Play sound
           new Audio('/notification.mp3').play().catch(() => {});
+
+          // Show system notification
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('طلب جديد!', {
+              body: `طلب جديد #${payload.new.order_number || ''} من ${payload.new.customer_first_name || 'عميل'}`,
+              icon: '/vite.svg' // Fallback icon
+            });
+          }
         }
       )
       .subscribe();

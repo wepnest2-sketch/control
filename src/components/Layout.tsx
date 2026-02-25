@@ -1,24 +1,30 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Package, ShoppingBag, Layers, Map, Settings, FileText, Menu, X, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, Layers, Map, Settings, FileText, Menu, X, LogOut, Languages } from 'lucide-react';
 import { cn } from '../lib/utils';
 import NotificationBell from './NotificationBell';
+import { useLanguage } from '../lib/i18n';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
+  const { t, language, setLanguage, dir } = useLanguage();
+
+  const toggleLanguage = () => {
+    setLanguage(language === 'ar' ? 'en' : 'ar');
+  };
 
   const navItems = [
-    { to: "/", icon: LayoutDashboard, label: "لوحة التحكم" },
-    { to: "/orders", icon: ShoppingBag, label: "الطلبات" },
-    { to: "/products", icon: Package, label: "المنتجات" },
-    { to: "/categories", icon: Layers, label: "التصنيفات" },
-    { to: "/wilayas", icon: Map, label: "الولايات والتوصيل" },
-    { to: "/about", icon: FileText, label: "من نحن" },
-    { to: "/settings", icon: Settings, label: "الإعدادات" },
+    { to: "/", icon: LayoutDashboard, label: t('dashboard') },
+    { to: "/orders", icon: ShoppingBag, label: t('orders') },
+    { to: "/products", icon: Package, label: t('products') },
+    { to: "/categories", icon: Layers, label: t('categories') },
+    { to: "/wilayas", icon: Map, label: t('wilayas') },
+    { to: "/about", icon: FileText, label: t('about') },
+    { to: "/settings", icon: Settings, label: t('settings') },
   ];
 
   return (
-    <div className="min-h-screen bg-[#F5F5F5] flex font-sans text-gray-900" dir="rtl">
+    <div className="min-h-screen bg-[#F5F5F5] flex font-sans text-gray-900" dir={dir}>
       {/* Sidebar */}
       <aside 
         className={cn(
@@ -53,10 +59,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
-        <div className="absolute bottom-8 right-0 left-0 px-6">
+        <div className="absolute bottom-8 right-0 left-0 px-6 space-y-2">
           <button className="flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 w-full rounded-xl transition-colors">
             <LogOut size={20} />
-            <span>تسجيل الخروج</span>
+            <span>{t('logout')}</span>
           </button>
         </div>
       </aside>
@@ -70,6 +76,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </button>
           <div className="flex-1"></div>
           <div className="flex items-center gap-4">
+            <button 
+              onClick={toggleLanguage}
+              className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-black hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <Languages size={20} />
+              <span className="font-medium text-sm">{language === 'ar' ? 'English' : 'العربية'}</span>
+            </button>
             <NotificationBell />
             <div className="text-right hidden md:block">
               <p className="text-sm font-bold text-gray-900">المدير العام</p>

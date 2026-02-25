@@ -3,8 +3,10 @@ import { supabase } from '../lib/supabase';
 import { Wilaya } from '../types/database';
 import { Search, Save, Loader2, Plus } from 'lucide-react';
 import { formatNumber } from '../lib/utils';
+import { useLanguage } from '../lib/i18n';
 
 export default function Wilayas() {
+  const { t } = useLanguage();
   const [wilayas, setWilayas] = useState<Wilaya[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -69,7 +71,7 @@ export default function Wilayas() {
       }
     } catch (error) {
       console.error('Error adding wilaya:', error);
-      alert('حدث خطأ أثناء إضافة الولاية');
+      alert(t('error_adding_wilaya'));
     }
   };
 
@@ -83,20 +85,20 @@ export default function Wilayas() {
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-serif font-bold text-gray-900">الولايات والتوصيل</h1>
+        <h1 className="text-3xl font-serif font-bold text-gray-900">{t('wilayas_delivery')}</h1>
         <div className="flex gap-4">
           <button 
             onClick={() => setIsAddModalOpen(true)}
             className="flex items-center gap-2 bg-black text-white px-4 py-3 rounded-xl hover:bg-gray-800 transition-colors font-medium text-sm"
           >
             <Plus size={18} />
-            <span>إضافة ولاية</span>
+            <span>{t('add_wilaya')}</span>
           </button>
           <div className="relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input 
               type="text" 
-              placeholder="بحث عن ولاية..." 
+              placeholder={t('search_wilaya')} 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pr-10 pl-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black w-72 text-sm"
@@ -110,11 +112,11 @@ export default function Wilayas() {
           <table className="w-full text-right text-sm">
             <thead className="bg-gray-50 border-b border-gray-100 sticky top-0 z-10">
               <tr>
-                <th className="px-6 py-5 font-bold text-gray-500 w-24">الرمز</th>
-                <th className="px-6 py-5 font-bold text-gray-500">الولاية</th>
-                <th className="px-6 py-5 font-bold text-gray-500">توصيل للمنزل (د.ج)</th>
-                <th className="px-6 py-5 font-bold text-gray-500">توصيل للمكتب (د.ج)</th>
-                <th className="px-6 py-5 font-bold text-gray-500 text-left">الحالة</th>
+                <th className="px-6 py-5 font-bold text-gray-500 w-24">{t('code')}</th>
+                <th className="px-6 py-5 font-bold text-gray-500">{t('wilaya')}</th>
+                <th className="px-6 py-5 font-bold text-gray-500">{t('delivery_home')} ({t('currency')})</th>
+                <th className="px-6 py-5 font-bold text-gray-500">{t('delivery_desk')} ({t('currency')})</th>
+                <th className="px-6 py-5 font-bold text-gray-500 text-left">{t('status')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -170,30 +172,30 @@ export default function Wilayas() {
       {isAddModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center backdrop-blur-sm">
           <div className="bg-white w-full max-w-md p-8 rounded-2xl shadow-2xl animate-in fade-in zoom-in duration-200">
-            <h2 className="text-2xl font-bold mb-6">إضافة ولاية جديدة</h2>
+            <h2 className="text-2xl font-bold mb-6">{t('add_wilaya')}</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">رمز الولاية</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('wilaya_code')}</label>
                 <input
                   type="text"
                   value={newWilaya.id}
                   onChange={(e) => setNewWilaya({ ...newWilaya, id: e.target.value })}
                   className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-black focus:outline-none"
-                  placeholder="مثال: 01"
+                  placeholder="01"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">اسم الولاية</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('wilaya_name')}</label>
                 <input
                   type="text"
                   value={newWilaya.name}
                   onChange={(e) => setNewWilaya({ ...newWilaya, name: e.target.value })}
                   className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-black focus:outline-none"
-                  placeholder="مثال: أدرار"
+                  placeholder={t('wilaya_name')}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">سعر التوصيل للمنزل</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('delivery_home')}</label>
                 <input
                   type="number"
                   dir="ltr"
@@ -203,7 +205,7 @@ export default function Wilayas() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">سعر التوصيل للمكتب</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('delivery_desk')}</label>
                 <input
                   type="number"
                   dir="ltr"
@@ -217,13 +219,13 @@ export default function Wilayas() {
                   onClick={handleAddWilaya}
                   className="flex-1 bg-black text-white py-2.5 rounded-lg hover:bg-gray-800 transition-colors font-medium"
                 >
-                  حفظ
+                  {t('save')}
                 </button>
                 <button
                   onClick={() => setIsAddModalOpen(false)}
                   className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-lg hover:bg-gray-200 transition-colors font-medium"
                 >
-                  إلغاء
+                  {t('cancel')}
                 </button>
               </div>
             </div>

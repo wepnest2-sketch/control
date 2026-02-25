@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { SiteSettings } from '../types/database';
 import ImageUpload from '../components/ImageUpload';
+import { useLanguage } from '../lib/i18n';
 
 export default function Settings() {
+  const { t } = useLanguage();
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -22,25 +24,25 @@ export default function Settings() {
     setLoading(true);
     await supabase.from('site_settings').update(settings).eq('id', settings.id);
     setLoading(false);
-    alert('تم حفظ الإعدادات بنجاح!');
+    alert(t('settings_saved'));
   };
 
-  if (!settings) return <div>جاري التحميل...</div>;
+  if (!settings) return <div>{t('loading')}</div>;
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div>
-        <h1 className="text-3xl font-serif font-bold text-gray-900">إعدادات الموقع</h1>
-        <p className="text-gray-500 mt-2">تحكم في مظهر وإعدادات موقعك العامة.</p>
+        <h1 className="text-3xl font-serif font-bold text-gray-900">{t('site_settings')}</h1>
+        <p className="text-gray-500 mt-2">{t('site_settings_desc')}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* General Info */}
         <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm space-y-8">
-          <h2 className="text-xl font-bold border-b border-gray-100 pb-4 text-gray-900">معلومات عامة</h2>
+          <h2 className="text-xl font-bold border-b border-gray-100 pb-4 text-gray-900">{t('general_info')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3">
-              <label className="text-sm font-bold text-gray-700">اسم الموقع</label>
+              <label className="text-sm font-bold text-gray-700">{t('site_name')}</label>
               <input
                 type="text"
                 value={settings.site_name}
@@ -49,7 +51,7 @@ export default function Settings() {
               />
             </div>
             <div className="space-y-3">
-              <label className="text-sm font-bold text-gray-700">اسم شركة التوصيل</label>
+              <label className="text-sm font-bold text-gray-700">{t('delivery_company_name')}</label>
               <input
                 type="text"
                 value={settings.delivery_company_name}
@@ -59,7 +61,7 @@ export default function Settings() {
             </div>
           </div>
           <div className="space-y-3">
-            <label className="text-sm font-bold text-gray-700">نص الإعلان (الشريط العلوي)</label>
+            <label className="text-sm font-bold text-gray-700">{t('announcement_text')}</label>
             <input
               type="text"
               value={settings.announcement_text || ''}
@@ -71,30 +73,30 @@ export default function Settings() {
 
         {/* Branding */}
         <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm space-y-8">
-          <h2 className="text-xl font-bold border-b border-gray-100 pb-4 text-gray-900">الهوية البصرية</h2>
+          <h2 className="text-xl font-bold border-b border-gray-100 pb-4 text-gray-900">{t('branding')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3">
-              <label className="text-sm font-bold text-gray-700">رابط الشعار (Logo URL)</label>
+              <label className="text-sm font-bold text-gray-700">{t('logo_url')}</label>
               <ImageUpload
                 value={settings.logo_url}
                 onChange={(url) => setSettings({...settings, logo_url: url})}
                 onRemove={() => setSettings({...settings, logo_url: ''})}
-                placeholder="رفع الشعار"
+                placeholder={t('upload_logo')}
               />
             </div>
             <div className="space-y-3">
-              <label className="text-sm font-bold text-gray-700">رابط أيقونة الموقع (Favicon URL)</label>
+              <label className="text-sm font-bold text-gray-700">{t('favicon_url')}</label>
               <ImageUpload
                 value={settings.favicon_url || ''}
                 onChange={(url) => setSettings({...settings, favicon_url: url})}
                 onRemove={() => setSettings({...settings, favicon_url: ''})}
-                placeholder="رفع الأيقونة"
+                placeholder={t('upload_favicon')}
               />
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3">
-              <label className="text-sm font-bold text-gray-700">اللون الأساسي</label>
+              <label className="text-sm font-bold text-gray-700">{t('primary_color')}</label>
               <div className="flex gap-3">
                 <input
                   type="color"
@@ -112,7 +114,7 @@ export default function Settings() {
               </div>
             </div>
             <div className="space-y-3">
-              <label className="text-sm font-bold text-gray-700">اللون الثانوي</label>
+              <label className="text-sm font-bold text-gray-700">{t('secondary_color')}</label>
               <div className="flex gap-3">
                 <input
                   type="color"
@@ -134,19 +136,19 @@ export default function Settings() {
 
         {/* Hero Section */}
         <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm space-y-8">
-          <h2 className="text-xl font-bold border-b border-gray-100 pb-4 text-gray-900">الواجهة الرئيسية (Hero Section)</h2>
+          <h2 className="text-xl font-bold border-b border-gray-100 pb-4 text-gray-900">{t('hero_section')}</h2>
           <div className="space-y-3">
-            <label className="text-sm font-bold text-gray-700">رابط صورة الواجهة</label>
+            <label className="text-sm font-bold text-gray-700">{t('hero_image_url')}</label>
             <ImageUpload
               value={settings.hero_image_url || ''}
               onChange={(url) => setSettings({...settings, hero_image_url: url})}
               onRemove={() => setSettings({...settings, hero_image_url: ''})}
-              placeholder="رفع صورة الواجهة"
+              placeholder={t('upload_hero_image')}
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-3">
-              <label className="text-sm font-bold text-gray-700">العنوان الرئيسي</label>
+              <label className="text-sm font-bold text-gray-700">{t('hero_title')}</label>
               <input
                 type="text"
                 value={settings.hero_title || ''}
@@ -155,7 +157,7 @@ export default function Settings() {
               />
             </div>
             <div className="space-y-3">
-              <label className="text-sm font-bold text-gray-700">العنوان الفرعي</label>
+              <label className="text-sm font-bold text-gray-700">{t('hero_subtitle')}</label>
               <input
                 type="text"
                 value={settings.hero_subtitle || ''}
@@ -172,7 +174,7 @@ export default function Settings() {
             disabled={loading}
             className="px-10 py-4 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-bold shadow-lg shadow-gray-200 disabled:opacity-50 text-lg"
           >
-            {loading ? 'جاري الحفظ...' : 'حفظ التغييرات'}
+            {loading ? t('saving') : t('save_changes')}
           </button>
         </div>
       </form>

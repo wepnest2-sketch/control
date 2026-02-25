@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Upload, X, Loader2, Image as ImageIcon } from 'lucide-react';
 import { uploadImage } from '../lib/cloudinary';
 import { cn } from '../lib/utils';
+import { useLanguage } from '../lib/i18n';
 
 interface ImageUploadProps {
   value?: string;
@@ -11,7 +12,8 @@ interface ImageUploadProps {
   placeholder?: string;
 }
 
-export default function ImageUpload({ value, onChange, onRemove, className, placeholder = "رفع صورة" }: ImageUploadProps) {
+export default function ImageUpload({ value, onChange, onRemove, className, placeholder }: ImageUploadProps) {
+  const { t } = useLanguage();
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -25,7 +27,7 @@ export default function ImageUpload({ value, onChange, onRemove, className, plac
       onChange(url);
     } catch (error) {
       console.error('Upload failed:', error);
-      alert('فشل رفع الصورة. يرجى المحاولة مرة أخرى.');
+      alert(t('error_uploading_image'));
     } finally {
       setIsUploading(false);
       // Reset input so same file can be selected again if needed
@@ -81,12 +83,12 @@ export default function ImageUpload({ value, onChange, onRemove, className, plac
               {isUploading ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
-                  جاري الرفع...
+                  {t('uploading')}
                 </>
               ) : (
                 <>
                   <Upload size={16} />
-                  {placeholder}
+                  {placeholder || t('upload_image')}
                 </>
               )}
             </button>
@@ -95,7 +97,7 @@ export default function ImageUpload({ value, onChange, onRemove, className, plac
                 We can keep it simple for now. */}
           </div>
           <p className="text-xs text-gray-400 mt-2">
-            JPG, PNG, GIF حتى 5MB
+            {t('image_upload_hint')}
           </p>
         </div>
       </div>

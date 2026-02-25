@@ -3,8 +3,10 @@ import { supabase } from '../lib/supabase';
 import { AboutUsContent } from '../types/database';
 import { Plus, Trash2 } from 'lucide-react';
 import ConfirmationModal from '../components/ConfirmationModal';
+import { useLanguage } from '../lib/i18n';
 
 export default function AboutUs() {
+  const { t } = useLanguage();
   const [content, setContent] = useState<AboutUsContent | null>(null);
   const [loading, setLoading] = useState(false);
   
@@ -43,7 +45,7 @@ export default function AboutUs() {
       features: content.features
     }).eq('id', content.id);
     setLoading(false);
-    alert('تم الحفظ بنجاح!');
+    alert(t('settings_saved'));
   };
 
   const addFeature = () => {
@@ -55,6 +57,7 @@ export default function AboutUs() {
   const updateFeature = (index: number, field: 'title' | 'description', value: string) => {
     if (!content) return;
     const newFeatures = [...(content.features || [])];
+    // @ts-ignore
     newFeatures[index] = { ...newFeatures[index], [field]: value };
     setContent({ ...content, features: newFeatures });
   };
@@ -70,18 +73,18 @@ export default function AboutUs() {
     setDeleteModal({ isOpen: false, featureIndex: null });
   };
 
-  if (!content) return <div>جاري التحميل...</div>;
+  if (!content) return <div>{t('loading')}</div>;
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div>
-        <h1 className="text-3xl font-serif font-bold text-gray-900">صفحة من نحن</h1>
-        <p className="text-gray-500 mt-2">تعديل محتوى صفحة "من نحن" التي تظهر للعملاء.</p>
+        <h1 className="text-3xl font-serif font-bold text-gray-900">{t('about_us')}</h1>
+        <p className="text-gray-500 mt-2">{t('about_us_desc')}</p>
       </div>
 
       <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm space-y-8">
         <div className="space-y-3">
-          <label className="text-sm font-bold text-gray-700">عنوان الصفحة</label>
+          <label className="text-sm font-bold text-gray-700">{t('page_title')}</label>
           <input
             type="text"
             value={content.title}
@@ -91,7 +94,7 @@ export default function AboutUs() {
         </div>
 
         <div className="space-y-3">
-          <label className="text-sm font-bold text-gray-700">المحتوى الرئيسي</label>
+          <label className="text-sm font-bold text-gray-700">{t('content')}</label>
           <textarea
             rows={6}
             value={content.content}
@@ -102,12 +105,12 @@ export default function AboutUs() {
 
         <div className="space-y-6">
           <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-            <label className="text-lg font-bold text-gray-900">المميزات / القيم</label>
+            <label className="text-lg font-bold text-gray-900">{t('features_values')}</label>
             <button 
               onClick={addFeature}
               className="text-sm flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors shadow-md"
             >
-              <Plus size={16} /> إضافة ميزة
+              <Plus size={16} /> {t('add_feature')}
             </button>
           </div>
           
@@ -117,14 +120,14 @@ export default function AboutUs() {
                 <div className="flex-1 space-y-3">
                   <input
                     type="text"
-                    placeholder="عنوان الميزة"
+                    placeholder={t('feature_title')}
                     value={feature.title}
                     onChange={e => updateFeature(index, 'title', e.target.value)}
                     className="w-full px-4 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-black font-bold"
                   />
                   <textarea
                     rows={2}
-                    placeholder="وصف الميزة"
+                    placeholder={t('feature_description')}
                     value={feature.description}
                     onChange={e => updateFeature(index, 'description', e.target.value)}
                     className="w-full px-4 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-black"
@@ -139,7 +142,7 @@ export default function AboutUs() {
               </div>
             ))}
             {(!content.features || content.features.length === 0) && (
-              <p className="text-sm text-gray-400 text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">لا توجد مميزات مضافة حتى الآن.</p>
+              <p className="text-sm text-gray-400 text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">{t('no_features')}</p>
             )}
           </div>
         </div>
@@ -150,7 +153,7 @@ export default function AboutUs() {
             disabled={loading}
             className="px-10 py-4 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-bold shadow-lg shadow-gray-200 disabled:opacity-50 text-lg"
           >
-            {loading ? 'جاري الحفظ...' : 'حفظ التغييرات'}
+            {loading ? t('saving') : t('save_changes')}
           </button>
         </div>
       </div>
@@ -160,10 +163,10 @@ export default function AboutUs() {
         isOpen={deleteModal.isOpen}
         onClose={() => setDeleteModal({ isOpen: false, featureIndex: null })}
         onConfirm={handleRemoveFeature}
-        title="حذف الميزة"
-        message="هل أنت متأكد من أنك تريد حذف هذه الميزة؟"
-        confirmText="نعم، احذف"
-        cancelText="إلغاء"
+        title={t('delete_feature')}
+        message={t('confirm_delete_feature')}
+        confirmText={t('yes_delete')}
+        cancelText={t('cancel')}
         isDangerous={true}
       />
     </div>

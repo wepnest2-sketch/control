@@ -10,3 +10,16 @@ body {
   font-family: var(--font-sans);
   background-color: #F5F5F5;
 }
+
+/* Force LTR for inputs to ensure numbers are entered correctly */
+input[type="number"],
+input[type="tel"],
+.font-mono {
+  direction: ltr;
+}
+
+/* Ensure numbers are always LTR even in RTL context */
+.numeric {
+  direction: ltr;
+  display: inline-block;
+}

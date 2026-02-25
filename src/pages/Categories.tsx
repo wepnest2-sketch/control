@@ -4,8 +4,10 @@ import { Category } from '../types/database';
 import { Plus, Edit2, Trash2, X } from 'lucide-react';
 import ConfirmationModal from '../components/ConfirmationModal';
 import ImageUpload from '../components/ImageUpload';
+import { useLanguage } from '../lib/i18n';
 
 export default function Categories() {
+  const { t } = useLanguage();
   const [categories, setCategories] = useState<Category[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -70,12 +72,12 @@ export default function Categories() {
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-serif font-bold text-gray-900">التصنيفات</h1>
+        <h1 className="text-3xl font-serif font-bold text-gray-900">{t('categories')}</h1>
         <button 
           onClick={() => handleOpenModal()}
           className="bg-black text-white px-6 py-3 rounded-xl flex items-center gap-2 hover:bg-gray-800 transition-colors shadow-lg shadow-gray-200"
         >
-          <Plus size={20} /> إضافة تصنيف جديد
+          <Plus size={20} /> {t('add_category')}
         </button>
       </div>
 
@@ -86,7 +88,7 @@ export default function Categories() {
               {category.image_url ? (
                 <img src={category.image_url} alt={category.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-300 bg-gray-50">لا توجد صورة</div>
+                <div className="w-full h-full flex items-center justify-center text-gray-300 bg-gray-50">{t('no_image')}</div>
               )}
               <div className="absolute top-3 left-3 flex gap-2">
                 <button onClick={() => handleOpenModal(category)} className="p-2.5 bg-white rounded-full shadow-lg hover:bg-black hover:text-white transition-colors">
@@ -99,7 +101,7 @@ export default function Categories() {
             </div>
             <div className="p-6">
               <h3 className="font-bold text-xl text-gray-900">{category.name}</h3>
-              <p className="text-xs text-gray-400 mt-2 font-mono">الترتيب: {category.display_order}</p>
+              <p className="text-xs text-gray-400 mt-2 font-mono">{t('display_order')}: {category.display_order}</p>
             </div>
           </div>
         ))}
@@ -110,10 +112,10 @@ export default function Categories() {
         isOpen={deleteModal.isOpen}
         onClose={() => setDeleteModal({ isOpen: false, categoryId: null })}
         onConfirm={handleDelete}
-        title="حذف التصنيف"
-        message="هل أنت متأكد من أنك تريد حذف هذا التصنيف؟ قد يؤثر هذا على المنتجات المرتبطة به."
-        confirmText="نعم، احذف"
-        cancelText="إلغاء"
+        title={t('delete_category')}
+        message={t('confirm_delete_category')}
+        confirmText={t('yes_delete')}
+        cancelText={t('cancel')}
         isDangerous={true}
       />
 
@@ -123,7 +125,7 @@ export default function Categories() {
           <div className="bg-white rounded-2xl w-full max-w-md p-8 shadow-2xl">
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-2xl font-serif font-bold text-gray-900">
-                {editingCategory ? 'تعديل التصنيف' : 'تصنيف جديد'}
+                {editingCategory ? t('edit_category') : t('add_category')}
               </h2>
               <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                 <X size={24} />
@@ -132,27 +134,27 @@ export default function Categories() {
             
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700">اسم التصنيف</label>
+                <label className="text-sm font-bold text-gray-700">{t('category_name')}</label>
                 <input
                   type="text"
                   required
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black transition-colors bg-gray-50 focus:bg-white"
-                  placeholder="أدخل اسم التصنيف"
+                  placeholder={t('category_name')}
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700">صورة التصنيف</label>
+                <label className="text-sm font-bold text-gray-700">{t('category_image')}</label>
                 <ImageUpload
                   value={formData.image_url || ''}
                   onChange={(url) => setFormData({...formData, image_url: url})}
                   onRemove={() => setFormData({...formData, image_url: ''})}
-                  placeholder="رفع صورة التصنيف"
+                  placeholder={t('upload_image')}
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700">ترتيب العرض</label>
+                <label className="text-sm font-bold text-gray-700">{t('display_order')}</label>
                 <input
                   type="number"
                   value={formData.display_order}
@@ -164,7 +166,7 @@ export default function Categories() {
                 type="submit"
                 className="w-full py-3.5 rounded-xl bg-black text-white hover:bg-gray-800 transition-colors mt-6 font-bold shadow-lg shadow-gray-200"
               >
-                حفظ
+                {t('save')}
               </button>
             </form>
           </div>
