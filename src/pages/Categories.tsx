@@ -88,7 +88,7 @@ export default function Categories() {
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-300 bg-gray-50">لا توجد صورة</div>
               )}
-              <div className="absolute top-3 left-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute top-3 left-3 flex gap-2">
                 <button onClick={() => handleOpenModal(category)} className="p-2.5 bg-white rounded-full shadow-lg hover:bg-black hover:text-white transition-colors">
                   <Edit2 size={16} />
                 </button>

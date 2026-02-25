@@ -126,10 +126,11 @@ export default function Wilayas() {
                     <div className="relative w-32">
                       <input 
                         type="number"
-                        value={wilaya.delivery_price_home}
+                        dir="ltr"
+                        value={wilaya.delivery_price_home || ''}
                         onChange={(e) => handlePriceChange(wilaya.id, 'delivery_price_home', e.target.value)}
                         onBlur={(e) => updatePrice(wilaya.id, 'delivery_price_home', Number(e.target.value))}
-                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-black focus:outline-none bg-gray-50 focus:bg-white transition-colors"
+                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-black focus:outline-none bg-gray-50 focus:bg-white transition-colors text-right"
                       />
                       {updatingId === wilaya.id && (
                         <div className="absolute left-2 top-1/2 -translate-y-1/2">
@@ -142,10 +143,11 @@ export default function Wilayas() {
                     <div className="relative w-32">
                       <input 
                         type="number"
-                        value={wilaya.delivery_price_desk}
+                        dir="ltr"
+                        value={wilaya.delivery_price_desk || ''}
                         onChange={(e) => handlePriceChange(wilaya.id, 'delivery_price_desk', e.target.value)}
                         onBlur={(e) => updatePrice(wilaya.id, 'delivery_price_desk', Number(e.target.value))}
-                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-black focus:outline-none bg-gray-50 focus:bg-white transition-colors"
+                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-black focus:outline-none bg-gray-50 focus:bg-white transition-colors text-right"
                       />
                     </div>
                   </td>
@@ -194,18 +196,20 @@ export default function Wilayas() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">سعر التوصيل للمنزل</label>
                 <input
                   type="number"
-                  value={newWilaya.delivery_price_home}
+                  dir="ltr"
+                  value={newWilaya.delivery_price_home || ''}
                   onChange={(e) => setNewWilaya({ ...newWilaya, delivery_price_home: Number(e.target.value) })}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-black focus:outline-none"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-black focus:outline-none text-right"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">سعر التوصيل للمكتب</label>
                 <input
                   type="number"
-                  value={newWilaya.delivery_price_desk}
+                  dir="ltr"
+                  value={newWilaya.delivery_price_desk || ''}
                   onChange={(e) => setNewWilaya({ ...newWilaya, delivery_price_desk: Number(e.target.value) })}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-black focus:outline-none"
+                  className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-black focus:outline-none text-right"
                 />
               </div>
               <div className="flex gap-3 mt-8">

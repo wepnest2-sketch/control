@@ -217,10 +217,10 @@ export default function Products() {
                     {categories.find(c => c.id === product.category_id)?.name || '-'}
                   </td>
                   <td className="px-6 py-4 font-mono text-gray-700 font-medium text-base">
-                    {formatNumber(product.price.toLocaleString())} د.ج
+                    {formatNumber(product.price)} د.ج
                     {product.discount_price && (
                       <span className="mr-2 text-xs text-red-500 line-through">
-                        {formatNumber(product.discount_price.toLocaleString())}
+                        {formatNumber(product.discount_price)}
                       </span>
                     )}
                   </td>
@@ -325,18 +325,20 @@ export default function Products() {
                   <input
                     type="number"
                     required
-                    value={formData.price}
+                    dir="ltr"
+                    value={formData.price || ''}
                     onChange={e => setFormData({...formData, price: Number(e.target.value)})}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black transition-colors bg-gray-50 focus:bg-white"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black transition-colors bg-gray-50 focus:bg-white text-right"
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-gray-700">سعر التخفيض (اختياري)</label>
                   <input
                     type="number"
+                    dir="ltr"
                     value={formData.discount_price || ''}
                     onChange={e => setFormData({...formData, discount_price: e.target.value ? Number(e.target.value) : null})}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black transition-colors bg-gray-50 focus:bg-white"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black transition-colors bg-gray-50 focus:bg-white text-right"
                   />
                 </div>
               </div>
@@ -400,8 +402,9 @@ export default function Products() {
                   <div className="flex gap-2">
                     <input
                       type="number"
+                      dir="ltr"
                       placeholder="الكمية"
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:border-black focus:outline-none"
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:border-black focus:outline-none text-right"
                       id="new-variant-qty"
                     />
                   </div>
