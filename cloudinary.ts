@@ -1,175 +1,235 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Category } from '../types/database';
-import { Plus, Edit2, Trash2, X } from 'lucide-react';
-import ConfirmationModal from '../components/ConfirmationModal';
-import ImageUpload from '../components/ImageUpload';
+import { Wilaya } from '../types/database';
+import { Search, Save, Loader2, Plus } from 'lucide-react';
+import { formatNumber } from '../lib/utils';
 import { useLanguage } from '../lib/i18n';
 
-export default function Categories() {
+export default function Wilayas() {
   const { t } = useLanguage();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [formData, setFormData] = useState<Partial<Category>>({
+  const [wilayas, setWilayas] = useState<Wilaya[]>([]);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newWilaya, setNewWilaya] = useState({
+    id: '',
     name: '',
-    image_url: '',
-    display_order: 0
-  });
-
-  // Confirmation Modal State
-  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; categoryId: string | null }>({
-    isOpen: false,
-    categoryId: null
+    delivery_price_home: 0,
+    delivery_price_desk: 0,
+    is_active: true
   });
 
   useEffect(() => {
-    fetchCategories();
+    fetchWilayas();
   }, []);
 
-  async function fetchCategories() {
-    const { data } = await supabase.from('categories').select('*').order('display_order', { ascending: true });
-    if (data) setCategories(data);
+  async function fetchWilayas() {
+    const { data } = await supabase.from('wilayas').select('*').order('id', { ascending: true });
+    if (data) setWilayas(data);
+    setLoading(false);
   }
 
-  const handleOpenModal = (category?: Category) => {
-    if (category) {
-      setEditingCategory(category);
-      setFormData(category);
-    } else {
-      setEditingCategory(null);
-      setFormData({ name: '', image_url: '', display_order: 0 });
-    }
-    setIsModalOpen(true);
+  const handlePriceChange = (id: string, field: 'delivery_price_home' | 'delivery_price_desk', value: string) => {
+    setWilayas(prev => prev.map(w => w.id === id ? { ...w, [field]: Number(value) } : w));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const updatePrice = async (id: string, field: 'delivery_price_home' | 'delivery_price_desk', value: number) => {
+    setUpdatingId(id);
     try {
-      if (editingCategory) {
-        await supabase.from('categories').update(formData).eq('id', editingCategory.id);
-      } else {
-        await supabase.from('categories').insert([formData]);
-      }
-      setIsModalOpen(false);
-      fetchCategories();
+      await supabase.from('wilayas').update({ [field]: value }).eq('id', id);
     } catch (error) {
-      console.error(error);
+      console.error('Error updating wilaya:', error);
+    } finally {
+      setUpdatingId(null);
     }
   };
 
-  const confirmDelete = (id: string) => {
-    setDeleteModal({ isOpen: true, categoryId: id });
+  const toggleActive = async (id: string, currentStatus: boolean) => {
+    // Optimistic update
+    setWilayas(prev => prev.map(w => w.id === id ? { ...w, is_active: !currentStatus } : w));
+    
+    try {
+      await supabase.from('wilayas').update({ is_active: !currentStatus }).eq('id', id);
+    } catch (error) {
+      console.error('Error updating status:', error);
+      // Revert on error
+      setWilayas(prev => prev.map(w => w.id === id ? { ...w, is_active: currentStatus } : w));
+    }
   };
 
-  const handleDelete = async () => {
-    if (!deleteModal.categoryId) return;
-    await supabase.from('categories').delete().eq('id', deleteModal.categoryId);
-    fetchCategories();
-    setDeleteModal({ isOpen: false, categoryId: null });
+  const handleAddWilaya = async () => {
+    if (!newWilaya.id || !newWilaya.name) return;
+    
+    try {
+      const { data, error } = await supabase.from('wilayas').insert([newWilaya]).select().single();
+      if (error) throw error;
+      if (data) {
+        setWilayas([...wilayas, data].sort((a, b) => Number(a.id) - Number(b.id)));
+        setIsAddModalOpen(false);
+        setNewWilaya({ id: '', name: '', delivery_price_home: 0, delivery_price_desk: 0, is_active: true });
+      }
+    } catch (error) {
+      console.error('Error adding wilaya:', error);
+      alert(t('error_adding_wilaya'));
+    }
   };
+
+  const filteredWilayas = wilayas.filter(w => 
+    w.name.toLowerCase().includes(search.toLowerCase()) || 
+    w.id.includes(search)
+  );
+
+  if (loading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin" /></div>;
 
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-serif font-bold text-gray-900">{t('categories')}</h1>
-        <button 
-          id="btn-add-category"
-          onClick={() => handleOpenModal()}
-          className="bg-black text-white px-6 py-3 rounded-xl flex items-center gap-2 hover:bg-gray-800 transition-colors shadow-lg shadow-gray-200"
-        >
-          <Plus size={20} /> {t('add_category')}
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {categories.map((category) => (
-          <div key={category.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm group hover:shadow-md transition-shadow">
-            <div className="h-48 bg-gray-100 relative overflow-hidden">
-              {category.image_url ? (
-                <img src={category.image_url} alt={category.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-300 bg-gray-50">{t('no_image')}</div>
-              )}
-              <div className="absolute top-3 left-3 flex gap-2">
-                <button onClick={() => handleOpenModal(category)} className="p-2.5 bg-white rounded-full shadow-lg hover:bg-black hover:text-white transition-colors">
-                  <Edit2 size={16} />
-                </button>
-                <button onClick={() => confirmDelete(category.id)} className="p-2.5 bg-white rounded-full shadow-lg hover:bg-red-600 hover:text-white transition-colors text-red-500">
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            </div>
-            <div className="p-6">
-              <h3 className="font-bold text-xl text-gray-900">{category.name}</h3>
-              <p className="text-xs text-gray-400 mt-2 font-mono">{t('display_order')}: {category.display_order}</p>
-            </div>
+        <h1 className="text-3xl font-serif font-bold text-gray-900">{t('wilayas_delivery')}</h1>
+        <div className="flex gap-4">
+          <button 
+            id="btn-add-wilaya"
+            onClick={() => setIsAddModalOpen(true)}
+            className="flex items-center gap-2 bg-black text-white px-4 py-3 rounded-xl hover:bg-gray-800 transition-colors font-medium text-sm"
+          >
+            <Plus size={18} />
+            <span>{t('add_wilaya')}</span>
+          </button>
+          <div className="relative">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input 
+              type="text" 
+              placeholder={t('search_wilaya')} 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pr-10 pl-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black w-72 text-sm"
+            />
           </div>
-        ))}
+        </div>
       </div>
 
-      {/* Confirmation Modal */}
-      <ConfirmationModal
-        isOpen={deleteModal.isOpen}
-        onClose={() => setDeleteModal({ isOpen: false, categoryId: null })}
-        onConfirm={handleDelete}
-        title={t('delete_category')}
-        message={t('confirm_delete_category')}
-        confirmText={t('yes_delete')}
-        cancelText={t('cancel')}
-        isDangerous={true}
-      />
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+        <div className="max-h-[calc(100vh-250px)] overflow-y-auto">
+          <table className="w-full text-right text-sm">
+            <thead className="bg-gray-50 border-b border-gray-100 sticky top-0 z-10">
+              <tr>
+                <th className="px-6 py-5 font-bold text-gray-500 w-24">{t('code')}</th>
+                <th className="px-6 py-5 font-bold text-gray-500">{t('wilaya')}</th>
+                <th className="px-6 py-5 font-bold text-gray-500">{t('delivery_home')} ({t('currency')})</th>
+                <th className="px-6 py-5 font-bold text-gray-500">{t('delivery_desk')} ({t('currency')})</th>
+                <th className="px-6 py-5 font-bold text-gray-500 text-left">{t('status')}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {filteredWilayas.map((wilaya) => (
+                <tr key={wilaya.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 font-mono text-gray-400 font-bold">{formatNumber(wilaya.id)}</td>
+                  <td className="px-6 py-4 font-bold text-gray-900 text-base">{wilaya.name}</td>
+                  <td className="px-6 py-4">
+                    <div className="relative w-32">
+                      <input 
+                        type="number"
+                        dir="ltr"
+                        value={wilaya.delivery_price_home || ''}
+                        onChange={(e) => handlePriceChange(wilaya.id, 'delivery_price_home', e.target.value)}
+                        onBlur={(e) => updatePrice(wilaya.id, 'delivery_price_home', Number(e.target.value))}
+                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-black focus:outline-none bg-gray-50 focus:bg-white transition-colors text-right"
+                      />
+                      {updatingId === wilaya.id && (
+                        <div className="absolute left-2 top-1/2 -translate-y-1/2">
+                          <Loader2 size={14} className="animate-spin text-gray-400" />
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="relative w-32">
+                      <input 
+                        type="number"
+                        dir="ltr"
+                        value={wilaya.delivery_price_desk || ''}
+                        onChange={(e) => handlePriceChange(wilaya.id, 'delivery_price_desk', e.target.value)}
+                        onBlur={(e) => updatePrice(wilaya.id, 'delivery_price_desk', Number(e.target.value))}
+                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-black focus:outline-none bg-gray-50 focus:bg-white transition-colors text-right"
+                      />
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-left">
+                    <button 
+                      onClick={() => toggleActive(wilaya.id, wilaya.is_active)}
+                      className={`w-12 h-7 rounded-full p-1 transition-colors duration-300 ease-in-out ${wilaya.is_active ? 'bg-black' : 'bg-gray-200'}`}
+                    >
+                      <div className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-300 ease-in-out ${wilaya.is_active ? '-translate-x-5' : 'translate-x-0'}`} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-      {/* Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-md p-8 shadow-2xl">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-2xl font-serif font-bold text-gray-900">
-                {editingCategory ? t('edit_category') : t('add_category')}
-              </h2>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                <X size={24} />
-              </button>
-            </div>
-            
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700">{t('category_name')}</label>
+      {/* Add Wilaya Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center backdrop-blur-sm">
+          <div className="bg-white w-full max-w-md p-8 rounded-2xl shadow-2xl animate-in fade-in zoom-in duration-200">
+            <h2 className="text-2xl font-bold mb-6">{t('add_wilaya')}</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('wilaya_code')}</label>
                 <input
                   type="text"
-                  required
-                  value={formData.name}
-                  onChange={e => setFormData({...formData, name: e.target.value})}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black transition-colors bg-gray-50 focus:bg-white"
-                  placeholder={t('category_name')}
+                  value={newWilaya.id}
+                  onChange={(e) => setNewWilaya({ ...newWilaya, id: e.target.value })}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-black focus:outline-none"
+                  placeholder="01"
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700">{t('category_image')}</label>
-                <ImageUpload
-                  value={formData.image_url || ''}
-                  onChange={(url) => setFormData({...formData, image_url: url})}
-                  onRemove={() => setFormData({...formData, image_url: ''})}
-                  placeholder={t('upload_image')}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('wilaya_name')}</label>
+                <input
+                  type="text"
+                  value={newWilaya.name}
+                  onChange={(e) => setNewWilaya({ ...newWilaya, name: e.target.value })}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-black focus:outline-none"
+                  placeholder={t('wilaya_name')}
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700">{t('display_order')}</label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('delivery_home')}</label>
                 <input
                   type="number"
-                  value={formData.display_order}
-                  onChange={e => setFormData({...formData, display_order: Number(e.target.value)})}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black transition-colors bg-gray-50 focus:bg-white"
+                  dir="ltr"
+                  value={newWilaya.delivery_price_home || ''}
+                  onChange={(e) => setNewWilaya({ ...newWilaya, delivery_price_home: Number(e.target.value) })}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-black focus:outline-none text-right"
                 />
               </div>
-              <button
-                type="submit"
-                className="w-full py-3.5 rounded-xl bg-black text-white hover:bg-gray-800 transition-colors mt-6 font-bold shadow-lg shadow-gray-200"
-              >
-                {t('save')}
-              </button>
-            </form>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('delivery_desk')}</label>
+                <input
+                  type="number"
+                  dir="ltr"
+                  value={newWilaya.delivery_price_desk || ''}
+                  onChange={(e) => setNewWilaya({ ...newWilaya, delivery_price_desk: Number(e.target.value) })}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:border-black focus:outline-none text-right"
+                />
+              </div>
+              <div className="flex gap-3 mt-8">
+                <button
+                  onClick={handleAddWilaya}
+                  className="flex-1 bg-black text-white py-2.5 rounded-lg hover:bg-gray-800 transition-colors font-medium"
+                >
+                  {t('save')}
+                </button>
+                <button
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="flex-1 bg-gray-100 text-gray-700 py-2.5 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                >
+                  {t('cancel')}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

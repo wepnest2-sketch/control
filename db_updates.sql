@@ -1,183 +1,174 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { SiteSettings } from '../types/database';
-import ImageUpload from '../components/ImageUpload';
+import { AboutUsContent } from '../types/database';
+import { Plus, Trash2 } from 'lucide-react';
+import ConfirmationModal from '../components/ConfirmationModal';
 import { useLanguage } from '../lib/i18n';
 
-export default function Settings() {
+export default function AboutUs() {
   const { t } = useLanguage();
-  const [settings, setSettings] = useState<SiteSettings | null>(null);
+  const [content, setContent] = useState<AboutUsContent | null>(null);
   const [loading, setLoading] = useState(false);
+  
+  // Confirmation Modal State
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; featureIndex: number | null }>({
+    isOpen: false,
+    featureIndex: null
+  });
 
   useEffect(() => {
-    fetchSettings();
+    fetchContent();
   }, []);
 
-  async function fetchSettings() {
-    const { data } = await supabase.from('site_settings').select('*').single();
-    if (data) setSettings(data);
+  async function fetchContent() {
+    const { data } = await supabase.from('about_us_content').select('*').single();
+    if (data) {
+      setContent(data);
+    } else {
+      // Create default if not exists
+      const defaultContent = {
+        title: 'من نحن',
+        content: 'مرحباً بكم في بابيون.',
+        features: []
+      };
+      const { data: newData } = await supabase.from('about_us_content').insert([defaultContent]).select().single();
+      if (newData) setContent(newData);
+    }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!settings) return;
+  const handleSave = async () => {
+    if (!content) return;
     setLoading(true);
-    await supabase.from('site_settings').update(settings).eq('id', settings.id);
+    await supabase.from('about_us_content').update({
+      title: content.title,
+      content: content.content,
+      features: content.features
+    }).eq('id', content.id);
     setLoading(false);
     alert(t('settings_saved'));
   };
 
-  if (!settings) return <div>{t('loading')}</div>;
+  const addFeature = () => {
+    if (!content) return;
+    const newFeature = { title: '', description: '' };
+    setContent({ ...content, features: [...(content.features || []), newFeature] });
+  };
+
+  const updateFeature = (index: number, field: 'title' | 'description', value: string) => {
+    if (!content) return;
+    const newFeatures = [...(content.features || [])];
+    // @ts-ignore
+    newFeatures[index] = { ...newFeatures[index], [field]: value };
+    setContent({ ...content, features: newFeatures });
+  };
+
+  const confirmRemoveFeature = (index: number) => {
+    setDeleteModal({ isOpen: true, featureIndex: index });
+  };
+
+  const handleRemoveFeature = () => {
+    if (!content || deleteModal.featureIndex === null) return;
+    const newFeatures = content.features.filter((_: any, i: number) => i !== deleteModal.featureIndex);
+    setContent({ ...content, features: newFeatures });
+    setDeleteModal({ isOpen: false, featureIndex: null });
+  };
+
+  if (!content) return <div>{t('loading')}</div>;
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div>
-        <h1 className="text-3xl font-serif font-bold text-gray-900">{t('site_settings')}</h1>
-        <p className="text-gray-500 mt-2">{t('site_settings_desc')}</p>
+        <h1 className="text-3xl font-serif font-bold text-gray-900">{t('about_us')}</h1>
+        <p className="text-gray-500 mt-2">{t('about_us_desc')}</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {/* General Info */}
-        <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm space-y-8">
-          <h2 className="text-xl font-bold border-b border-gray-100 pb-4 text-gray-900">{t('general_info')}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-3">
-              <label className="text-sm font-bold text-gray-700">{t('site_name')}</label>
-              <input
-                type="text"
-                value={settings.site_name}
-                onChange={e => setSettings({...settings, site_name: e.target.value})}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black transition-colors bg-gray-50 focus:bg-white"
-              />
-            </div>
-            <div className="space-y-3">
-              <label className="text-sm font-bold text-gray-700">{t('delivery_company_name')}</label>
-              <input
-                type="text"
-                value={settings.delivery_company_name}
-                onChange={e => setSettings({...settings, delivery_company_name: e.target.value})}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black transition-colors bg-gray-50 focus:bg-white"
-              />
-            </div>
-          </div>
-          <div className="space-y-3">
-            <label className="text-sm font-bold text-gray-700">{t('announcement_text')}</label>
-            <input
-              type="text"
-              value={settings.announcement_text || ''}
-              onChange={e => setSettings({...settings, announcement_text: e.target.value})}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black transition-colors bg-gray-50 focus:bg-white"
-            />
-          </div>
+      <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm space-y-8">
+        <div className="space-y-3">
+          <label className="text-sm font-bold text-gray-700">{t('page_title')}</label>
+          <input
+            type="text"
+            value={content.title}
+            onChange={e => setContent({...content, title: e.target.value})}
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black transition-colors bg-gray-50 focus:bg-white"
+          />
         </div>
 
-        {/* Branding */}
-        <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm space-y-8">
-          <h2 className="text-xl font-bold border-b border-gray-100 pb-4 text-gray-900">{t('branding')}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-3">
-              <label className="text-sm font-bold text-gray-700">{t('logo_url')}</label>
-              <ImageUpload
-                value={settings.logo_url}
-                onChange={(url) => setSettings({...settings, logo_url: url})}
-                onRemove={() => setSettings({...settings, logo_url: ''})}
-                placeholder={t('upload_logo')}
-              />
-            </div>
-            <div className="space-y-3">
-              <label className="text-sm font-bold text-gray-700">{t('favicon_url')}</label>
-              <ImageUpload
-                value={settings.favicon_url || ''}
-                onChange={(url) => setSettings({...settings, favicon_url: url})}
-                onRemove={() => setSettings({...settings, favicon_url: ''})}
-                placeholder={t('upload_favicon')}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-3">
-              <label className="text-sm font-bold text-gray-700">{t('primary_color')}</label>
-              <div className="flex gap-3">
-                <input
-                  type="color"
-                  value={settings.primary_color}
-                  onChange={e => setSettings({...settings, primary_color: e.target.value})}
-                  className="h-12 w-12 rounded-lg border border-gray-200 cursor-pointer p-1 bg-white"
-                />
-                <input
-                  type="text"
-                  value={settings.primary_color}
-                  onChange={e => setSettings({...settings, primary_color: e.target.value})}
-                  className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black uppercase font-mono text-left"
-                  dir="ltr"
-                />
-              </div>
-            </div>
-            <div className="space-y-3">
-              <label className="text-sm font-bold text-gray-700">{t('secondary_color')}</label>
-              <div className="flex gap-3">
-                <input
-                  type="color"
-                  value={settings.secondary_color}
-                  onChange={e => setSettings({...settings, secondary_color: e.target.value})}
-                  className="h-12 w-12 rounded-lg border border-gray-200 cursor-pointer p-1 bg-white"
-                />
-                <input
-                  type="text"
-                  value={settings.secondary_color}
-                  onChange={e => setSettings({...settings, secondary_color: e.target.value})}
-                  className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black uppercase font-mono text-left"
-                  dir="ltr"
-                />
-              </div>
-            </div>
-          </div>
+        <div className="space-y-3">
+          <label className="text-sm font-bold text-gray-700">{t('content')}</label>
+          <textarea
+            rows={6}
+            value={content.content}
+            onChange={e => setContent({...content, content: e.target.value})}
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black transition-colors bg-gray-50 focus:bg-white"
+          />
         </div>
 
-        {/* Hero Section */}
-        <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm space-y-8">
-          <h2 className="text-xl font-bold border-b border-gray-100 pb-4 text-gray-900">{t('hero_section')}</h2>
-          <div className="space-y-3">
-            <label className="text-sm font-bold text-gray-700">{t('hero_image_url')}</label>
-            <ImageUpload
-              value={settings.hero_image_url || ''}
-              onChange={(url) => setSettings({...settings, hero_image_url: url})}
-              onRemove={() => setSettings({...settings, hero_image_url: ''})}
-              placeholder={t('upload_hero_image')}
-            />
+        <div className="space-y-6">
+          <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+            <label className="text-lg font-bold text-gray-900">{t('features_values')}</label>
+            <button 
+              onClick={addFeature}
+              className="text-sm flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors shadow-md"
+            >
+              <Plus size={16} /> {t('add_feature')}
+            </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-3">
-              <label className="text-sm font-bold text-gray-700">{t('hero_title')}</label>
-              <input
-                type="text"
-                value={settings.hero_title || ''}
-                onChange={e => setSettings({...settings, hero_title: e.target.value})}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black transition-colors bg-gray-50 focus:bg-white"
-              />
-            </div>
-            <div className="space-y-3">
-              <label className="text-sm font-bold text-gray-700">{t('hero_subtitle')}</label>
-              <input
-                type="text"
-                value={settings.hero_subtitle || ''}
-                onChange={e => setSettings({...settings, hero_subtitle: e.target.value})}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black transition-colors bg-gray-50 focus:bg-white"
-              />
-            </div>
+          
+          <div className="space-y-4">
+            {content.features?.map((feature: any, index: number) => (
+              <div key={index} className="flex gap-4 items-start bg-gray-50 p-6 rounded-xl border border-gray-100 group hover:border-gray-300 transition-colors">
+                <div className="flex-1 space-y-3">
+                  <input
+                    type="text"
+                    placeholder={t('feature_title')}
+                    value={feature.title}
+                    onChange={e => updateFeature(index, 'title', e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-black font-bold"
+                  />
+                  <textarea
+                    rows={2}
+                    placeholder={t('feature_description')}
+                    value={feature.description}
+                    onChange={e => updateFeature(index, 'description', e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-black"
+                  />
+                </div>
+                <button 
+                  onClick={() => confirmRemoveFeature(index)}
+                  className="p-3 bg-white rounded-lg shadow-sm text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            ))}
+            {(!content.features || content.features.length === 0) && (
+              <p className="text-sm text-gray-400 text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">{t('no_features')}</p>
+            )}
           </div>
         </div>
 
         <div className="flex justify-end pt-4">
           <button
-            type="submit"
+            onClick={handleSave}
             disabled={loading}
             className="px-10 py-4 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-bold shadow-lg shadow-gray-200 disabled:opacity-50 text-lg"
           >
             {loading ? t('saving') : t('save_changes')}
           </button>
         </div>
-      </form>
+      </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, featureIndex: null })}
+        onConfirm={handleRemoveFeature}
+        title={t('delete_feature')}
+        message={t('confirm_delete_feature')}
+        confirmText={t('yes_delete')}
+        cancelText={t('cancel')}
+        isDangerous={true}
+      />
     </div>
   );
 }
