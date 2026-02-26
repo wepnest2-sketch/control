@@ -1,26 +1,43 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Package, ShoppingBag, Layers, Map, Settings, FileText, Menu, X, LogOut, Languages } from 'lucide-react';
 import { cn } from '../lib/utils';
 import NotificationBell from './NotificationBell';
 import { useLanguage } from '../lib/i18n';
+import { startTutorial } from '../lib/tutorial';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
   const { t, language, setLanguage, dir } = useLanguage();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleStartTutorial = () => {
+      startTutorial(
+        navigate, 
+        t, 
+        language, 
+        () => setIsSidebarOpen(true), 
+        () => setIsSidebarOpen(false)
+      );
+    };
+
+    window.addEventListener('start-tutorial', handleStartTutorial);
+    return () => window.removeEventListener('start-tutorial', handleStartTutorial);
+  }, [navigate, t, language]);
 
   const toggleLanguage = () => {
     setLanguage(language === 'ar' ? 'en' : 'ar');
   };
 
   const navItems = [
-    { to: "/", icon: LayoutDashboard, label: t('dashboard') },
-    { to: "/orders", icon: ShoppingBag, label: t('orders') },
-    { to: "/products", icon: Package, label: t('products') },
-    { to: "/categories", icon: Layers, label: t('categories') },
-    { to: "/wilayas", icon: Map, label: t('wilayas') },
-    { to: "/about", icon: FileText, label: t('about') },
-    { to: "/settings", icon: Settings, label: t('settings') },
+    { to: "/", icon: LayoutDashboard, label: t('dashboard'), id: "nav-dashboard" },
+    { to: "/orders", icon: ShoppingBag, label: t('orders'), id: "nav-orders" },
+    { to: "/products", icon: Package, label: t('products'), id: "nav-products" },
+    { to: "/categories", icon: Layers, label: t('categories'), id: "nav-categories" },
+    { to: "/wilayas", icon: Map, label: t('wilayas'), id: "nav-wilayas" },
+    { to: "/about", icon: FileText, label: t('about'), id: "nav-about" },
+    { to: "/settings", icon: Settings, label: t('settings'), id: "nav-settings" },
   ];
 
   return (
@@ -44,6 +61,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <NavLink
               key={item.to}
               to={item.to}
+              id={item.id}
               className={({ isActive }) =>
                 cn(
                   "flex items-center gap-4 px-4 py-3.5 text-base font-medium transition-all rounded-xl",
@@ -60,6 +78,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="absolute bottom-8 right-0 left-0 px-6 space-y-2">
+          <button 
+            id="btn-start-tutorial"
+            onClick={() => window.dispatchEvent(new CustomEvent('start-tutorial'))}
+            className="flex items-center gap-3 px-4 py-3 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 w-full rounded-xl transition-colors mb-2"
+          >
+            <Layers size={20} />
+            <span>{language === 'ar' ? 'نظام تعليمي' : 'Tutorial'}</span>
+          </button>
           <button className="flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 w-full rounded-xl transition-colors">
             <LogOut size={20} />
             <span>{t('logout')}</span>
@@ -68,7 +94,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden print:overflow-visible print:h-auto print:block">
         {/* Header */}
         <header className="h-20 bg-white border-b border-gray-200 flex items-center justify-between px-6 lg:px-10 shadow-sm print:hidden">
           <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden text-gray-500 hover:text-black">
@@ -95,7 +121,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-6 lg:p-10">
+        <main className="flex-1 overflow-y-auto p-6 lg:p-10 print:overflow-visible print:h-auto print:p-0">
           {children}
         </main>
       </div>

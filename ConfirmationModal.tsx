@@ -210,6 +210,7 @@ export default function Products() {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-serif font-bold text-gray-900">{t('products')}</h1>
         <button 
+          id="btn-add-product"
           onClick={() => handleOpenModal()}
           className="bg-black text-white px-6 py-3 rounded-xl flex items-center gap-2 hover:bg-gray-800 transition-colors shadow-lg shadow-gray-200"
         >
@@ -217,7 +218,7 @@ export default function Products() {
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+      <div id="products-table" className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-right text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
@@ -263,7 +264,7 @@ export default function Products() {
                   <td className="px-6 py-4 text-left space-x-2 space-x-reverse">
                     <button 
                       onClick={() => handleOpenQuantityModal(product)}
-                      className="p-2.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-black hover:text-white transition-all"
+                      className="btn-update-qty p-2.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-black hover:text-white transition-all"
                       title={t('update_quantities')}
                     >
                       <Layers size={18} />

@@ -88,6 +88,7 @@ export default function Wilayas() {
         <h1 className="text-3xl font-serif font-bold text-gray-900">{t('wilayas_delivery')}</h1>
         <div className="flex gap-4">
           <button 
+            id="btn-add-wilaya"
             onClick={() => setIsAddModalOpen(true)}
             className="flex items-center gap-2 bg-black text-white px-4 py-3 rounded-xl hover:bg-gray-800 transition-colors font-medium text-sm"
           >

@@ -74,6 +74,7 @@ export default function Categories() {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-serif font-bold text-gray-900">{t('categories')}</h1>
         <button 
+          id="btn-add-category"
           onClick={() => handleOpenModal()}
           className="bg-black text-white px-6 py-3 rounded-xl flex items-center gap-2 hover:bg-gray-800 transition-colors shadow-lg shadow-gray-200"
         >

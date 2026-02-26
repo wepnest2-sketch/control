@@ -171,6 +171,7 @@ export default function Orders() {
         <h1 className="text-3xl font-serif font-bold text-gray-900">{t('orders')}</h1>
         <div className="flex gap-2">
           <select 
+            id="status-filter"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-black text-sm font-medium"
@@ -274,7 +275,7 @@ export default function Orders() {
       </div>
 
       {/* Desktop View - Table */}
-      <div className="hidden md:block bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm print:hidden">
+      <div id="orders-table" className="hidden md:block bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm print:hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-right text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
@@ -374,6 +375,7 @@ export default function Orders() {
                       </>
                     )}
                     <button 
+                      id="btn-order-details"
                       onClick={(e) => {
                         e.stopPropagation();
                         fetchOrderDetails(order.id);
@@ -384,6 +386,7 @@ export default function Orders() {
                       <Eye size={18} />
                     </button>
                     <button 
+                      id="btn-delete-order"
                       onClick={(e) => {
                         e.stopPropagation();
                         deleteOrder(order.id);
@@ -404,100 +407,183 @@ export default function Orders() {
 
       {/* Order Detail Modal */}
       {isDetailOpen && selectedOrder && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-end backdrop-blur-sm print:bg-white print:static print:block print:h-auto print:z-auto">
-          <div className="bg-white w-full max-w-lg h-full overflow-y-auto p-8 shadow-2xl animate-in slide-in-from-left duration-300 print:shadow-none print:w-full print:max-w-none print:h-auto print:overflow-visible print:animate-none">
-            <div className="flex items-center justify-between mb-8 print:hidden">
-              <h2 className="text-3xl font-serif font-bold text-gray-900">{t('order')} #{selectedOrder.order_number}</h2>
-              <div className="flex gap-2">
-                <button onClick={handlePrint} className="p-2 hover:bg-gray-100 rounded-full transition-colors" title={t('print')}>
-                  <Printer size={24} />
-                </button>
-                <button 
-                  onClick={() => deleteOrder(selectedOrder.id)} 
-                  className="p-2 hover:bg-red-50 text-red-600 rounded-full transition-colors" 
-                  title={t('delete_order')}
-                >
-                  <Trash2 size={24} />
-                </button>
-                <button onClick={() => setIsDetailOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                  <X size={24} />
-                </button>
-              </div>
-            </div>
-
-            {/* Print Header */}
-            <div className="hidden print:block mb-8 text-center border-b pb-4">
-              <h1 className="text-4xl font-bold mb-2">{t('order_invoice')}</h1>
-              <p className="text-xl">#{selectedOrder.order_number}</p>
-            </div>
-
-            <div className="space-y-8 print:space-y-4">
-              {/* Status Control */}
-              <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 space-y-3 print:hidden">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('update_status')}</label>
-                <select 
-                  value={selectedOrder.status}
-                  onChange={(e) => updateStatus(selectedOrder.id, e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black bg-white font-medium"
-                >
-                  <option value="pending">{t('pending')}</option>
-                  <option value="confirmed">{t('confirmed')}</option>
-                  <option value="shipped">{t('shipped')}</option>
-                  <option value="delivered">{t('delivered')}</option>
-                  <option value="cancelled">{t('cancelled')}</option>
-                </select>
-              </div>
-
-              {/* Customer Info */}
-              <div>
-                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">{t('customer_info')}</h3>
-                <div className="space-y-3 text-base text-gray-700">
-                  <p className="flex justify-between"><span className="text-gray-400">{t('name')}:</span> <span className="font-medium">{selectedOrder.customer_first_name} {selectedOrder.customer_last_name}</span></p>
-                  <p className="flex justify-between"><span className="text-gray-400">{t('phone')}:</span> <span className="font-mono font-medium">{selectedOrder.customer_phone}</span></p>
-                  <p className="flex justify-between"><span className="text-gray-400">{t('wilaya')}:</span> <span className="font-medium">{selectedOrder.wilayas?.name}</span></p>
-                  <p className="flex justify-between"><span className="text-gray-400">{t('municipality')}:</span> <span className="font-medium">{selectedOrder.municipality_name}</span></p>
-                  {selectedOrder.delivery_type === 'home' && selectedOrder.address && (
-                    <p className="flex justify-between"><span className="text-gray-400">{t('address')}:</span> <span className="font-medium text-left">{selectedOrder.address}</span></p>
-                  )}
-                  <p className="flex justify-between"><span className="text-gray-400">{t('delivery_method')}:</span> <span className="font-medium">{getDeliveryLabel(selectedOrder.delivery_type)}</span></p>
-                  {selectedOrder.instagram_account && (
-                    <p className="flex justify-between"><span className="text-gray-400">{t('instagram')}:</span> <span className="font-medium text-blue-600">{selectedOrder.instagram_account}</span></p>
-                  )}
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-end backdrop-blur-sm print:bg-white print:fixed print:inset-0 print:z-[9999] print:flex print:items-start print:justify-center">
+          <div className="bg-white w-full max-w-lg h-full overflow-y-auto p-8 shadow-2xl animate-in slide-in-from-left duration-300 print:shadow-none print:w-full print:max-w-none print:h-auto print:overflow-visible print:animate-none print:p-0">
+            {/* Print Layout - Visible only when printing */}
+            <div className="hidden print:block p-8 max-w-2xl mx-auto">
+              {/* Header */}
+              <div className="text-center border-b-2 border-black pb-6 mb-8">
+                <h1 className="text-3xl font-serif font-bold mb-2">Papillon Store</h1>
+                <div className="flex justify-between items-center text-sm text-gray-600 mt-4">
+                  <p>{t('date')}: {format(new Date(selectedOrder.created_at), 'dd/MM/yyyy HH:mm')}</p>
+                  <p className="font-bold text-lg">#{selectedOrder.order_number}</p>
                 </div>
               </div>
 
-              {/* Items */}
-              <div>
-                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">{t('items')}</h3>
-                <div className="space-y-4">
-                  {selectedOrder.order_items.map((item: any) => (
-                    <div key={item.id} className="flex gap-4 items-start p-4 bg-gray-50 rounded-xl border border-gray-100">
-                      {item.products?.images?.[0] && (
-                        <img 
-                          src={item.products.images[0]} 
-                          alt={item.product_name} 
-                          className="w-16 h-16 object-cover rounded-lg border border-gray-200"
-                        />
+              {/* Customer Details Box */}
+              <div className="border-2 border-black rounded-lg p-6 mb-8">
+                <h3 className="font-bold text-lg mb-4 border-b border-gray-300 pb-2">{t('customer_info')}</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-500 mb-1">{t('name')}</p>
+                    <p className="font-bold text-lg">{selectedOrder.customer_first_name} {selectedOrder.customer_last_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 mb-1">{t('phone')}</p>
+                    <p className="font-mono font-bold text-lg" dir="ltr">{selectedOrder.customer_phone}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 mb-1">{t('wilaya')}</p>
+                    <p className="font-bold">{selectedOrder.wilayas?.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 mb-1">{t('municipality')}</p>
+                    <p className="font-bold">{selectedOrder.municipality_name}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-gray-500 mb-1">{t('delivery_method')}</p>
+                    <p className="font-bold flex items-center gap-2">
+                      {getDeliveryLabel(selectedOrder.delivery_type)}
+                      {selectedOrder.delivery_type === 'home' && selectedOrder.address && (
+                        <span className="text-gray-600 font-normal">- {selectedOrder.address}</span>
                       )}
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="font-bold text-gray-900 text-lg">{item.product_name}</p>
-                            <p className="text-sm text-gray-500 mt-1">
-                              {item.selected_size && <span className="bg-white px-2 py-0.5 rounded border border-gray-200 ml-2">{item.selected_size}</span>}
-                              {item.selected_color && <span className="bg-white px-2 py-0.5 rounded border border-gray-200 ml-2">{item.selected_color}</span>}
-                              <span className="font-mono font-medium">x {item.quantity}</span>
-                            </p>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Items Table */}
+              <div className="mb-8">
+                <h3 className="font-bold text-lg mb-4">{t('items')}</h3>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b-2 border-black">
+                      <th className="text-right py-2">{t('product')}</th>
+                      <th className="text-center py-2">{t('quantity')}</th>
+                      <th className="text-left py-2">{t('price')}</th>
+                      <th className="text-left py-2">{t('total')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {selectedOrder.order_items.map((item: any) => (
+                      <tr key={item.id}>
+                        <td className="py-3">
+                          <p className="font-bold">{item.product_name}</p>
+                          <p className="text-xs text-gray-500">
+                            {item.selected_size && `${item.selected_size} `}
+                            {item.selected_color && item.selected_color}
+                          </p>
+                        </td>
+                        <td className="text-center py-3 font-mono">x{item.quantity}</td>
+                        <td className="text-left py-3 font-mono">{formatNumber(item.price)}</td>
+                        <td className="text-left py-3 font-mono font-bold">{formatNumber(item.price * item.quantity)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-black">
+                      <td colSpan={3} className="pt-4 text-lg font-bold text-right">{t('total_amount')}</td>
+                      <td className="pt-4 text-lg font-bold font-mono text-left">{formatNumber(selectedOrder.total_price)} {t('currency')}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              {/* Footer */}
+              <div className="text-center text-xs text-gray-400 mt-12 pt-4 border-t border-gray-200">
+                <p>Thank you for shopping with Papillon Store</p>
+              </div>
+            </div>
+
+            {/* Screen Layout - Hidden when printing */}
+            <div className="print:hidden">
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-3xl font-serif font-bold text-gray-900">{t('order')} #{selectedOrder.order_number}</h2>
+                <div className="flex gap-2">
+                  <button id="btn-print-order" onClick={handlePrint} className="p-2 hover:bg-gray-100 rounded-full transition-colors" title={t('print')}>
+                    <Printer size={24} />
+                  </button>
+                  <button 
+                    onClick={() => deleteOrder(selectedOrder.id)} 
+                    className="p-2 hover:bg-red-50 text-red-600 rounded-full transition-colors" 
+                    title={t('delete_order')}
+                  >
+                    <Trash2 size={24} />
+                  </button>
+                  <button onClick={() => setIsDetailOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                    <X size={24} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-8">
+                {/* Status Control */}
+                <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 space-y-3">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t('update_status')}</label>
+                  <select 
+                    value={selectedOrder.status}
+                    onChange={(e) => updateStatus(selectedOrder.id, e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-black bg-white font-medium"
+                  >
+                    <option value="pending">{t('pending')}</option>
+                    <option value="confirmed">{t('confirmed')}</option>
+                    <option value="shipped">{t('shipped')}</option>
+                    <option value="delivered">{t('delivered')}</option>
+                    <option value="cancelled">{t('cancelled')}</option>
+                  </select>
+                </div>
+
+                {/* Customer Info */}
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">{t('customer_info')}</h3>
+                  <div className="space-y-3 text-base text-gray-700">
+                    <p className="flex justify-between"><span className="text-gray-400">{t('name')}:</span> <span className="font-medium">{selectedOrder.customer_first_name} {selectedOrder.customer_last_name}</span></p>
+                    <p className="flex justify-between"><span className="text-gray-400">{t('phone')}:</span> <span className="font-mono font-medium">{selectedOrder.customer_phone}</span></p>
+                    <p className="flex justify-between"><span className="text-gray-400">{t('wilaya')}:</span> <span className="font-medium">{selectedOrder.wilayas?.name}</span></p>
+                    <p className="flex justify-between"><span className="text-gray-400">{t('municipality')}:</span> <span className="font-medium">{selectedOrder.municipality_name}</span></p>
+                    {selectedOrder.delivery_type === 'home' && selectedOrder.address && (
+                      <p className="flex justify-between"><span className="text-gray-400">{t('address')}:</span> <span className="font-medium text-left">{selectedOrder.address}</span></p>
+                    )}
+                    <p className="flex justify-between"><span className="text-gray-400">{t('delivery_method')}:</span> <span className="font-medium">{getDeliveryLabel(selectedOrder.delivery_type)}</span></p>
+                    {selectedOrder.instagram_account && (
+                      <p className="flex justify-between"><span className="text-gray-400">{t('instagram')}:</span> <span className="font-medium text-blue-600">{selectedOrder.instagram_account}</span></p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Items */}
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">{t('items')}</h3>
+                  <div className="space-y-4">
+                    {selectedOrder.order_items.map((item: any) => (
+                      <div key={item.id} className="flex gap-4 items-start p-4 bg-gray-50 rounded-xl border border-gray-100">
+                        {item.products?.images?.[0] && (
+                          <img 
+                            src={item.products.images[0]} 
+                            alt={item.product_name} 
+                            className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                          />
+                        )}
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-bold text-gray-900 text-lg">{item.product_name}</p>
+                              <p className="text-sm text-gray-500 mt-1">
+                                {item.selected_size && <span className="bg-white px-2 py-0.5 rounded border border-gray-200 ml-2">{item.selected_size}</span>}
+                                {item.selected_color && <span className="bg-white px-2 py-0.5 rounded border border-gray-200 ml-2">{item.selected_color}</span>}
+                                <span className="font-mono font-medium">x {item.quantity}</span>
+                              </p>
+                            </div>
+                            <p className="font-mono font-bold text-gray-900">{formatNumber(item.price * item.quantity)} {t('currency')}</p>
                           </div>
-                          <p className="font-mono font-bold text-gray-900">{formatNumber(item.price * item.quantity)} {t('currency')}</p>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-6 pt-6 border-t border-gray-100 flex justify-between items-center">
-                  <span className="text-lg font-bold text-gray-900">{t('total_amount')}</span>
-                  <span className="text-2xl font-serif font-bold text-black">{formatNumber(selectedOrder.total_price)} {t('currency')}</span>
+                    ))}
+                  </div>
+                  <div className="mt-6 pt-6 border-t border-gray-100 flex justify-between items-center">
+                    <span className="text-lg font-bold text-gray-900">{t('total_amount')}</span>
+                    <span className="text-2xl font-serif font-bold text-black">{formatNumber(selectedOrder.total_price)} {t('currency')}</span>
+                  </div>
                 </div>
               </div>
             </div>
