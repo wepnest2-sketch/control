@@ -404,8 +404,8 @@ export default function Orders() {
 
       {/* Order Detail Modal */}
       {isDetailOpen && selectedOrder && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-end backdrop-blur-sm print:bg-white print:static print:block print:h-auto print:z-auto">
-          <div className="bg-white w-full max-w-lg h-full overflow-y-auto p-8 shadow-2xl animate-in slide-in-from-left duration-300 print:shadow-none print:w-full print:max-w-none print:h-auto print:overflow-visible print:animate-none">
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-end backdrop-blur-sm print:bg-white print:fixed print:inset-0 print:z-[9999] print:flex print:items-start print:justify-center">
+          <div className="bg-white w-full max-w-lg h-full overflow-y-auto p-8 shadow-2xl animate-in slide-in-from-left duration-300 print:shadow-none print:w-full print:max-w-none print:h-auto print:overflow-visible print:animate-none print:p-0">
             {/* Print Layout - Visible only when printing */}
             <div className="hidden print:block p-8 max-w-2xl mx-auto">
               {/* Header */}

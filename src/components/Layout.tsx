@@ -68,7 +68,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden print:overflow-visible print:h-auto print:block">
         {/* Header */}
         <header className="h-20 bg-white border-b border-gray-200 flex items-center justify-between px-6 lg:px-10 shadow-sm print:hidden">
           <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden text-gray-500 hover:text-black">
@@ -95,7 +95,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-6 lg:p-10">
+        <main className="flex-1 overflow-y-auto p-6 lg:p-10 print:overflow-visible print:h-auto print:p-0">
           {children}
         </main>
       </div>

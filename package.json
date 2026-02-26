@@ -1,275 +1,42 @@
-import { driver } from "driver.js";
-import "driver.js/dist/driver.css";
-
-export const startTutorial = (
-  navigate: (path: string) => void, 
-  t: (key: string) => string, 
-  language: string,
-  openSidebar?: () => void,
-  closeSidebar?: () => void
-) => {
-  const isRtl = language === 'ar';
-  const isMobile = window.innerWidth < 1024;
-  
-  const driverObj = driver({
-    showProgress: true,
-    animate: true,
-    allowClose: true,
-    doneBtnText: isRtl ? "إنهاء" : "Done",
-    closeBtnText: isRtl ? "إغلاق" : "Close",
-    nextBtnText: isRtl ? "التالي" : "Next",
-    prevBtnText: isRtl ? "السابق" : "Previous",
-    popoverClass: 'driverjs-theme',
-    steps: [
-      {
-        element: '#nav-dashboard',
-        popover: {
-          title: isRtl ? "مرحباً بك في لوحة التحكم" : "Welcome to Dashboard",
-          description: isRtl 
-            ? "هنا يمكنك رؤية نظرة عامة على متجرك، الإحصائيات، والطلبات الأخيرة." 
-            : "Here you can see an overview of your store, statistics, and recent orders.",
-          side: "left",
-          align: 'start'
-        }
-      },
-      {
-        element: '#nav-products',
-        popover: {
-          title: isRtl ? "المنتجات" : "Products",
-          description: isRtl 
-            ? "لننتقل إلى صفحة المنتجات لنتعلم كيفية إضافة وإدارة منتجاتك." 
-            : "Let's go to the Products page to learn how to add and manage your products.",
-          side: "left",
-          align: 'start',
-          onNextClick: () => {
-            navigate('/products');
-            if (isMobile && closeSidebar) closeSidebar();
-            setTimeout(() => {
-              driverObj.moveNext();
-            }, 500);
-          }
-        }
-      },
-      {
-        element: '#btn-add-product',
-        popover: {
-          title: isRtl ? "إضافة منتج جديد" : "Add New Product",
-          description: isRtl 
-            ? "اضغط هنا لإضافة منتج جديد. ستظهر لك نافذة لإدخال تفاصيل المنتج مثل الاسم، السعر، الصور، والخصائص (المقاس واللون)." 
-            : "Click here to add a new product. A modal will appear to enter product details like name, price, images, and variants (size and color).",
-          side: "bottom",
-          align: 'start'
-        }
-      },
-      {
-        element: '#products-table',
-        popover: {
-          title: isRtl ? "قائمة المنتجات" : "Products List",
-          description: isRtl 
-            ? "هنا تظهر جميع منتجاتك. يمكنك تعديلها أو حذفها من هنا." 
-            : "Here all your products are listed. You can edit or delete them from here.",
-          side: "top",
-          align: 'start'
-        }
-      },
-      {
-        element: '.btn-update-qty',
-        popover: {
-          title: isRtl ? "تحديث الكميات" : "Update Quantities",
-          description: isRtl 
-            ? "هذا الزر مهم جداً! يتيح لك تعديل كميات المخزون لكل لون ومقاس بسرعة دون الحاجة لتعديل المنتج بالكامل." 
-            : "This button is very important! It allows you to quickly update stock quantities for each color and size without editing the full product.",
-          side: "left",
-          align: 'start',
-          onNextClick: () => {
-            if (isMobile && openSidebar) {
-              openSidebar();
-              setTimeout(() => {
-                driverObj.moveNext();
-              }, 300);
-            } else {
-              driverObj.moveNext();
-            }
-          }
-        }
-      },
-      {
-        element: '#nav-categories',
-        popover: {
-          title: isRtl ? "التصنيفات" : "Categories",
-          description: isRtl 
-            ? "لننتقل إلى التصنيفات لتنظيم منتجاتك." 
-            : "Let's go to Categories to organize your products.",
-          side: "left",
-          align: 'start',
-          onNextClick: () => {
-            navigate('/categories');
-            if (isMobile && closeSidebar) closeSidebar();
-            setTimeout(() => {
-              driverObj.moveNext();
-            }, 500);
-          }
-        }
-      },
-      {
-        element: '#btn-add-category',
-        popover: {
-          title: isRtl ? "إضافة تصنيف" : "Add Category",
-          description: isRtl 
-            ? "يمكنك إضافة تصنيفات جديدة (مثل: ملابس، أحذية) لترتيب منتجاتك وتسهيل تصفحها." 
-            : "You can add new categories (e.g., Clothes, Shoes) to organize your products and make them easier to browse.",
-          side: "bottom",
-          align: 'start',
-          onNextClick: () => {
-            if (isMobile && openSidebar) {
-              openSidebar();
-              setTimeout(() => {
-                driverObj.moveNext();
-              }, 300);
-            } else {
-              driverObj.moveNext();
-            }
-          }
-        }
-      },
-      {
-        element: '#nav-wilayas',
-        popover: {
-          title: isRtl ? "الولايات والتوصيل" : "Wilayas & Delivery",
-          description: isRtl 
-            ? "لننتقل إلى صفحة الولايات لإدارة مناطق التوصيل والأسعار." 
-            : "Let's go to Wilayas page to manage delivery zones and prices.",
-          side: "left",
-          align: 'start',
-          onNextClick: () => {
-            navigate('/wilayas');
-            if (isMobile && closeSidebar) closeSidebar();
-            setTimeout(() => {
-              driverObj.moveNext();
-            }, 500);
-          }
-        }
-      },
-      {
-        element: '#btn-add-wilaya',
-        popover: {
-          title: isRtl ? "إضافة ولاية" : "Add Wilaya",
-          description: isRtl 
-            ? "يمكنك إضافة ولاية جديدة وتحديد سعر التوصيل للمنزل وللمكتب." 
-            : "You can add a new wilaya and set delivery prices for home and desk delivery.",
-          side: "bottom",
-          align: 'start',
-          onNextClick: () => {
-            if (isMobile && openSidebar) {
-              openSidebar();
-              setTimeout(() => {
-                driverObj.moveNext();
-              }, 300);
-            } else {
-              driverObj.moveNext();
-            }
-          }
-        }
-      },
-      {
-        element: '#nav-orders',
-        popover: {
-          title: isRtl ? "الطلبات" : "Orders",
-          description: isRtl 
-            ? "وأخيراً، لنلق نظرة على صفحة الطلبات حيث ستتلقى طلبات الزبائن." 
-            : "Finally, let's look at the Orders page where you will receive customer orders.",
-          side: "left",
-          align: 'start',
-          onNextClick: () => {
-            navigate('/orders');
-            if (isMobile && closeSidebar) closeSidebar();
-            setTimeout(() => {
-              driverObj.moveNext();
-            }, 500);
-          }
-        }
-      },
-      {
-        element: '#orders-table',
-        popover: {
-          title: isRtl ? "إدارة الطلبات" : "Manage Orders",
-          description: isRtl 
-            ? "هنا ستجد جميع الطلبات الواردة. يمكنك رؤية التفاصيل، تغيير حالة الطلب (قيد الانتظار، تم التأكيد، تم الشحن)." 
-            : "Here you will find all incoming orders. You can view details, change order status (Pending, Confirmed, Shipped).",
-          side: "top",
-          align: 'start'
-        }
-      },
-      {
-        element: '#btn-order-details',
-        popover: {
-          title: isRtl ? "تفاصيل الطلب" : "Order Details",
-          description: isRtl 
-            ? "اضغط على زر العين لرؤية تفاصيل الطلب الكاملة، بما في ذلك معلومات الزبون والمنتجات المطلوبة." 
-            : "Click the eye icon to view full order details, including customer info and ordered items.",
-          side: "left",
-          align: 'start'
-        }
-      },
-      {
-        element: '#btn-delete-order',
-        popover: {
-          title: isRtl ? "حذف الطلب" : "Delete Order",
-          description: isRtl 
-            ? "يمكنك حذف الطلب نهائياً بالضغط على أيقونة سلة المهملات. احذر، لا يمكن التراجع عن هذا الإجراء!" 
-            : "You can permanently delete an order by clicking the trash icon. Warning, this action cannot be undone!",
-          side: "left",
-          align: 'start'
-        }
-      },
-      {
-        element: '#btn-print-order',
-        popover: {
-          title: isRtl ? "طباعة الفاتورة" : "Print Invoice",
-          description: isRtl 
-            ? "داخل تفاصيل الطلب، ستجد زر الطباعة. يمكنك طباعة فاتورة احترافية للطلب لتسليمها مع الشحنة." 
-            : "Inside order details, you'll find the print button. You can print a professional invoice to include with the shipment.",
-          side: "left",
-          align: 'start',
-          onNextClick: () => {
-             driverObj.moveNext();
-          }
-        }
-      },
-      {
-        element: '#status-filter',
-        popover: {
-          title: isRtl ? "تصفية الطلبات" : "Filter Orders",
-          description: isRtl 
-            ? "استخدم هذا الخيار لعرض الطلبات حسب حالتها، مثلاً لعرض الطلبات الجديدة فقط." 
-            : "Use this option to filter orders by status, for example to show only new orders.",
-          side: "bottom",
-          align: 'start',
-          onNextClick: () => {
-            if (isMobile && openSidebar) {
-              openSidebar();
-              setTimeout(() => {
-                driverObj.moveNext();
-              }, 300);
-            } else {
-              driverObj.moveNext();
-            }
-          }
-        }
-      },
-      {
-        element: '#nav-dashboard',
-        popover: {
-          title: isRtl ? "انتهى الشرح!" : "Tutorial Finished!",
-          description: isRtl 
-            ? "أنت الآن جاهز لإدارة متجرك! إذا احتجت للمساعدة مرة أخرى، اضغط على زر 'نظام تعليمي' في القائمة." 
-            : "You are now ready to manage your store! If you need help again, click the 'Tutorial' button in the menu.",
-          side: "left",
-          align: 'start'
-        }
-      }
-    ]
-  });
-
-  driverObj.drive();
-};
+{
+  "name": "react-example",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx server.ts",
+    "build": "vite build",
+    "preview": "vite preview",
+    "clean": "rm -rf dist",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@google/genai": "^1.29.0",
+    "@supabase/supabase-js": "^2.97.0",
+    "@tailwindcss/vite": "^4.1.14",
+    "@vitejs/plugin-react": "^5.0.4",
+    "better-sqlite3": "^12.4.1",
+    "cloudinary": "^2.9.0",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "dotenv": "^17.2.3",
+    "express": "^4.21.2",
+    "lucide-react": "^0.546.0",
+    "motion": "^12.23.24",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.13.1",
+    "recharts": "^3.7.0",
+    "tailwind-merge": "^3.5.0",
+    "vite": "^6.2.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.14.0",
+    "autoprefixer": "^10.4.21",
+    "tailwindcss": "^4.1.14",
+    "tsx": "^4.21.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
+  }
+}
