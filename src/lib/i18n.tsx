@@ -134,6 +134,10 @@ export const translations: Translations = {
     current_stock: 'المخزون الحالي',
     copy_success: 'تم النسخ بنجاح',
     revenue_chart: 'إحصائيات الإيرادات (آخر 7 أيام)',
+    delivery_method: 'طريقة التوصيل',
+    delivery_home_label: 'توصيل للمنزل',
+    delivery_post_label: 'توصيل للمكتب (Stop Desk)',
+    municipality: 'البلدية',
   },
   en: {
     // Sidebar
@@ -260,6 +264,10 @@ export const translations: Translations = {
     current_stock: 'Current Stock',
     copy_success: 'Copied successfully',
     revenue_chart: 'Revenue Chart (Last 7 Days)',
+    delivery_method: 'Delivery Method',
+    delivery_home_label: 'Home Delivery',
+    delivery_post_label: 'Desk Delivery (Stop Desk)',
+    municipality: 'Municipality',
   }
 };
 

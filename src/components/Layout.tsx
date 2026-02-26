@@ -28,7 +28,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <aside 
         className={cn(
-          "fixed inset-y-0 right-0 z-50 w-72 bg-black text-white transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-auto shadow-2xl",
+          "fixed inset-y-0 right-0 z-50 w-72 bg-black text-white transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-auto shadow-2xl print:hidden",
           isSidebarOpen ? "translate-x-0" : "translate-x-full"
         )}
       >
@@ -70,7 +70,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
-        <header className="h-20 bg-white border-b border-gray-200 flex items-center justify-between px-6 lg:px-10 shadow-sm">
+        <header className="h-20 bg-white border-b border-gray-200 flex items-center justify-between px-6 lg:px-10 shadow-sm print:hidden">
           <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden text-gray-500 hover:text-black">
             <Menu size={24} />
           </button>

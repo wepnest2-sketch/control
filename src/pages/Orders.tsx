@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Order } from '../types/database';
-import { Eye, Search, Filter, X, CheckCircle, Loader2, XCircle, Printer, Trash2, Copy } from 'lucide-react';
+import { Eye, Search, Filter, X, CheckCircle, Loader2, XCircle, Printer, Trash2, Copy, MapPin, Truck } from 'lucide-react';
 import { cn, formatNumber } from '../lib/utils';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
@@ -25,7 +25,10 @@ export default function Orders() {
   }, [statusFilter]);
 
   async function fetchOrders() {
-    let query = supabase.from('orders').select('*, wilayas(name)').order('created_at', { ascending: false });
+    let query = supabase
+      .from('orders')
+      .select('*, wilayas(name), order_items(product_name, quantity, selected_size, selected_color)')
+      .order('created_at', { ascending: false });
     
     if (statusFilter !== 'all') {
       query = query.eq('status', statusFilter);
@@ -34,6 +37,13 @@ export default function Orders() {
     const { data } = await query;
     if (data) setOrders(data);
   }
+
+  const getOrderSummary = (order: any) => {
+    if (!order.order_items || order.order_items.length === 0) return '';
+    return order.order_items.map((item: any) => 
+      `${item.product_name} ${item.selected_size ? `(${item.selected_size})` : ''} ${item.selected_color ? `[${item.selected_color}]` : ''} x${item.quantity}`
+    ).join(' + ');
+  };
 
   const fetchOrderDetails = async (orderId: string) => {
     const { data: order } = await supabase
@@ -141,6 +151,12 @@ export default function Orders() {
     }
   };
 
+  const getDeliveryLabel = (type: string | null) => {
+    if (type === 'home') return t('delivery_home_label');
+    if (type === 'post' || type === 'desk') return t('delivery_post_label');
+    return type || '-';
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -151,7 +167,7 @@ export default function Orders() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between print:hidden">
         <h1 className="text-3xl font-serif font-bold text-gray-900">{t('orders')}</h1>
         <div className="flex gap-2">
           <select 
@@ -170,7 +186,7 @@ export default function Orders() {
       </div>
 
       {/* Mobile View - Cards */}
-      <div className="md:hidden space-y-4">
+      <div className="md:hidden space-y-4 print:hidden">
         {orders.map((order) => (
           <div key={order.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-4 active:scale-[0.98] transition-transform" onClick={() => fetchOrderDetails(order.id)}>
             <div className="flex justify-between items-start">
@@ -201,6 +217,28 @@ export default function Orders() {
                 </button>
               </div>
               <p className="text-sm text-gray-600 mt-1">{(order as any).wilayas?.name || order.wilaya_id}</p>
+              
+              <div className="mt-3 pt-3 border-t border-gray-50 space-y-2">
+                <div className="flex items-center gap-2 text-sm text-blue-700 bg-blue-50 p-2 rounded-lg w-fit">
+                  <Truck size={16} />
+                  <span className="font-bold">{getDeliveryLabel(order.delivery_type)}</span>
+                </div>
+
+                <p className="text-sm text-gray-800">
+                  <span className="font-bold text-gray-400 text-xs ml-1">{t('items')}:</span>
+                  {getOrderSummary(order)}
+                </p>
+                
+                <div className="flex items-start gap-1.5 text-gray-600 text-xs bg-gray-50 p-2 rounded-lg">
+                  <MapPin size={14} className="mt-0.5 flex-shrink-0" />
+                  <div>
+                    <span className="font-bold block text-gray-900">{order.municipality_name}</span>
+                    {order.delivery_type === 'home' && order.address && (
+                      <span className="block mt-0.5">{order.address}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-between items-center pt-3 border-t border-gray-100">
@@ -236,7 +274,7 @@ export default function Orders() {
       </div>
 
       {/* Desktop View - Table */}
-      <div className="hidden md:block bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+      <div className="hidden md:block bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm print:hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-right text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
@@ -244,6 +282,8 @@ export default function Orders() {
                 <th className="px-6 py-5 font-bold text-gray-500">{t('order_number')}</th>
                 <th className="px-6 py-5 font-bold text-gray-500">{t('customer')}</th>
                 <th className="px-6 py-5 font-bold text-gray-500">{t('wilaya')}</th>
+                <th className="px-6 py-5 font-bold text-gray-500">{t('delivery_method')}</th>
+                <th className="px-6 py-5 font-bold text-gray-500">{t('items')}</th>
                 <th className="px-6 py-5 font-bold text-gray-500">{t('total')}</th>
                 <th className="px-6 py-5 font-bold text-gray-500">{t('date')}</th>
                 <th className="px-6 py-5 font-bold text-gray-500">{t('status')}</th>
@@ -277,7 +317,25 @@ export default function Orders() {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-gray-600 font-medium">
-                    {(order as any).wilayas?.name || order.wilaya_id}
+                    <div>{(order as any).wilayas?.name || order.wilaya_id}</div>
+                    <div className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                      <MapPin size={12} />
+                      {order.municipality_name}
+                      {order.delivery_type === 'home' && order.address && ` - ${order.address}`}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={cn(
+                      "px-2 py-1 rounded text-xs font-bold border",
+                      order.delivery_type === 'home' 
+                        ? "bg-blue-50 text-blue-700 border-blue-100" 
+                        : "bg-orange-50 text-orange-700 border-orange-100"
+                    )}>
+                      {getDeliveryLabel(order.delivery_type)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-gray-600 font-medium max-w-[200px] truncate" title={getOrderSummary(order)}>
+                    {getOrderSummary(order)}
                   </td>
                   <td className="px-6 py-4 font-mono font-bold text-base">{formatNumber(order.total_price)} {t('currency')}</td>
                   <td className="px-6 py-4 text-gray-500 font-mono">{format(new Date(order.created_at), 'd MMM yyyy', { locale: language === 'ar' ? ar : undefined })}</td>
@@ -396,8 +454,12 @@ export default function Orders() {
                 <div className="space-y-3 text-base text-gray-700">
                   <p className="flex justify-between"><span className="text-gray-400">{t('name')}:</span> <span className="font-medium">{selectedOrder.customer_first_name} {selectedOrder.customer_last_name}</span></p>
                   <p className="flex justify-between"><span className="text-gray-400">{t('phone')}:</span> <span className="font-mono font-medium">{selectedOrder.customer_phone}</span></p>
-                  <p className="flex justify-between"><span className="text-gray-400">{t('address')}:</span> <span className="font-medium text-left">{selectedOrder.address}, {selectedOrder.municipality_name}</span></p>
                   <p className="flex justify-between"><span className="text-gray-400">{t('wilaya')}:</span> <span className="font-medium">{selectedOrder.wilayas?.name}</span></p>
+                  <p className="flex justify-between"><span className="text-gray-400">{t('municipality')}:</span> <span className="font-medium">{selectedOrder.municipality_name}</span></p>
+                  {selectedOrder.delivery_type === 'home' && selectedOrder.address && (
+                    <p className="flex justify-between"><span className="text-gray-400">{t('address')}:</span> <span className="font-medium text-left">{selectedOrder.address}</span></p>
+                  )}
+                  <p className="flex justify-between"><span className="text-gray-400">{t('delivery_method')}:</span> <span className="font-medium">{getDeliveryLabel(selectedOrder.delivery_type)}</span></p>
                   {selectedOrder.instagram_account && (
                     <p className="flex justify-between"><span className="text-gray-400">{t('instagram')}:</span> <span className="font-medium text-blue-600">{selectedOrder.instagram_account}</span></p>
                   )}
