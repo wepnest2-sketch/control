@@ -1,86 +1,38 @@
-export type Product = {
-  id: string;
-  name: string;
-  description: string | null;
-  price: number;
-  discount_price: number | null;
-  category_id: string | null;
-  images: string[];
-  is_active: boolean;
-  created_at: string;
-};
+import { Bell, User, Menu } from 'lucide-react';
 
-export type Category = {
-  id: string;
-  name: string;
-  image_url: string | null;
-  display_order: number;
-  created_at: string;
-};
+interface HeaderProps {
+  onMenuClick: () => void;
+}
 
-export type ProductVariant = {
-  id: string;
-  product_id: string;
-  size: string;
-  color_name: string;
-  color_hex: string;
-  quantity: number;
-  created_at: string;
-};
-
-export type Order = {
-  id: string;
-  order_number: number;
-  customer_first_name: string;
-  customer_last_name: string;
-  customer_phone: string;
-  wilaya_id: string | null;
-  municipality_name: string;
-  address: string | null;
-  delivery_type: 'home' | 'post' | null;
-  total_price: number;
-  status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
-  instagram_account: string | null;
-  created_at: string;
-  is_read?: boolean;
-  is_stock_deducted?: boolean;
-};
-
-export type OrderItem = {
-  id: string;
-  order_id: string;
-  product_id: string | null;
-  product_name: string;
-  price: number;
-  quantity: number;
-  selected_size: string | null;
-  selected_color: string | null;
-};
-
-export type Wilaya = {
-  id: string;
-  name: string;
-  delivery_price_home: number;
-  delivery_price_desk: number;
-  is_active: boolean;
-};
-
-export type SiteSettings = {
-  id: string;
-  site_name: string;
-  logo_url: string;
-  primary_color: string;
-  secondary_color: string;
-  announcement_text: string | null;
-  hero_image_url: string | null;
-  hero_title: string | null;
-  hero_subtitle: string | null;
-  delivery_company_name: string;
-};
-
-export type AboutUsContent = {
-  id: string;
-  title: string;
-  content: string;
-  features: any;
-};
+export default function Header({ onMenuClick }: HeaderProps) {
+  return (
+    <header className="flex h-20 items-center justify-between bg-white px-4 shadow-sm sm:px-8">
+      <div className="flex items-center gap-4">
+        <button
+          onClick={onMenuClick}
+          className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 md:hidden"
+        >
+          <Menu className="h-6 w-6" />
+        </button>
+        <h2 className="font-serif text-xl font-semibold text-gray-800">لوحة الإدارة</h2>
+      </div>
+      
+      <div className="flex items-center gap-4 sm:gap-6">
+        <button className="relative rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600">
+          <Bell className="h-6 w-6" />
+          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
+        </button>
+        
+        <div className="flex items-center gap-3 border-r border-gray-200 pr-4 sm:pr-6">
+          <div className="hidden text-left md:block">
+            <p className="text-sm font-semibold text-gray-900">المدير العام</p>
+            <p className="text-xs text-gray-500">مشرف النظام</p>
+          </div>
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black text-white shadow-md">
+            <User className="h-5 w-5" />
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+}
