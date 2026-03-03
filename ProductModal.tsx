@@ -1,11 +1,11 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
-import Dashboard from './pages/Dashboard';
-import Orders from './pages/Orders';
-import Products from './pages/Products';
-import Categories from './pages/Categories';
-import Wilayas from './pages/Wilayas';
-import Settings from './pages/Settings';
+import Dashboard from './pages/Dashboard.tsx';
+import Orders from './pages/Orders.tsx';
+import Products from './pages/Products.tsx';
+import Categories from './pages/Categories.tsx';
+import Wilayas from './pages/Wilayas.tsx';
+import Settings from './pages/Settings.tsx';
 
 export default function App() {
   return (
