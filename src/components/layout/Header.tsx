@@ -119,24 +119,24 @@ export function Header({ onMenuClick }: HeaderProps) {
 
           {/* Notification Dropdown */}
           {isNotificationOpen && (
-            <div className="absolute left-0 mt-3 w-80 md:w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
-              <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white">
+            <div className="absolute right-0 mt-3 w-[calc(100vw-2rem)] md:w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
+              <div className="p-4 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 bg-white">
                 <div>
                   <h3 className="font-bold text-gray-900">مركز الإشعارات</h3>
                   <p className="text-[10px] text-gray-400">تابع تحركات متجرك لحظة بلحظة</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full md:w-auto">
                   {notifications.length > 0 && (
                     <button
                       onClick={markAllAsRead}
-                      className="p-1 px-2 text-[10px] bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-lg flex items-center gap-1 transition-colors"
+                      className="flex-1 md:flex-none p-1.5 px-3 text-[10px] bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-lg flex items-center justify-center gap-1 transition-colors"
                     >
                       <Check className="w-3 h-3" /> تم قراءتها
                     </button>
                   )}
                   <button
                     onClick={clearNotifications}
-                    className="p-1 px-2 text-[10px] bg-red-50 hover:bg-red-100 text-red-600 rounded-lg flex items-center gap-1 transition-colors"
+                    className="flex-1 md:flex-none p-1.5 px-3 text-[10px] bg-red-50 hover:bg-red-100 text-red-600 rounded-lg flex items-center justify-center gap-1 transition-colors"
                   >
                     <Trash2 className="w-3 h-3" /> مسح
                   </button>
