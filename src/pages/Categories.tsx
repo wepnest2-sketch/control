@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent } from '@/components/ui/Card';
-import { Plus, Trash2, Layers, Edit, X, Upload, Loader2, Save } from 'lucide-react';
+import { Plus, Trash2, Layers, Edit, X, Upload, Loader2, Save, Image as ImageIcon } from 'lucide-react';
+import { ImageUpload } from '@/components/ImageUpload';
 
 export function Categories() {
   const [categories, setCategories] = useState<any[]>([]);
@@ -35,36 +36,7 @@ export function Categories() {
     }
   }
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    const uploadFormData = new FormData();
-    uploadFormData.append('file', file);
-
-    try {
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: uploadFormData,
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.details || 'Upload failed');
-      }
-
-      if (data.url) {
-        setFormData(prev => ({ ...prev, image_url: data.url }));
-      }
-    } catch (error: any) {
-      console.error('Upload failed', error);
-      alert('فشل رفع الصورة: ' + error.message);
-    } finally {
-      setUploading(false);
-    }
-  };
+  // handleImageUpload removed to use ImageUpload component
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -218,38 +190,11 @@ export function Categories() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">صورة التصنيف</label>
-                <div className="relative aspect-video bg-gray-50 rounded-xl overflow-hidden border-2 border-dashed border-gray-200 flex items-center justify-center group hover:border-black/20 transition-colors">
-                  {formData.image_url ? (
-                    <div className="relative w-full h-full">
-                      <img
-                        src={formData.image_url}
-                        alt="Preview"
-                        referrerPolicy="no-referrer"
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setFormData({ ...formData, image_url: '' })}
-                        className="absolute top-2 right-2 bg-black/50 text-white p-1 rounded-full hover:bg-black transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : uploading ? (
-                    <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                  ) : (
-                    <div className="flex flex-col items-center gap-2 text-gray-400">
-                      <Upload className="w-6 h-6" />
-                      <span className="text-xs">رفع صورة</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        className="absolute inset-0 opacity-0 cursor-pointer"
-                      />
-                    </div>
-                  )}
-                </div>
+                <ImageUpload
+                  value={formData.image_url ? [formData.image_url] : []}
+                  onChange={(urls) => setFormData(prev => ({ ...prev, image_url: urls[0] || '' }))}
+                  maxFiles={1}
+                />
               </div>
 
               <div className="pt-4 flex justify-end gap-3">

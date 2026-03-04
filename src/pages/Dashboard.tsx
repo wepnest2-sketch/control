@@ -48,7 +48,7 @@ export function Dashboard() {
         // Process Chart Data (Last 6 Months)
         const monthlyData = new Map();
         const today = new Date();
-        
+
         // Initialize last 6 months with 0
         for (let i = 5; i >= 0; i--) {
           const date = subMonths(today, i);
@@ -58,7 +58,7 @@ export function Dashboard() {
         }
 
         orders?.forEach(order => {
-          const date = new Date(order.created_at);
+          const date = new Date(order.created_at.replace(' ', 'T'));
           const key = format(date, 'yyyy-MM');
           if (monthlyData.has(key)) {
             const current = monthlyData.get(key);
@@ -89,33 +89,33 @@ export function Dashboard() {
   return (
     <div className="space-y-8">
       <h1 className="text-3xl font-serif font-bold text-gray-900">لوحة التحكم</h1>
-      
+
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <StatsCard 
-          title="إجمالي المبيعات" 
-          value={`${stats.totalSales.toLocaleString()} د.ج`} 
-          icon={DollarSign} 
+        <StatsCard
+          title="إجمالي المبيعات"
+          value={`${stats.totalSales.toLocaleString()} د.ج`}
+          icon={DollarSign}
           loading={loading}
         />
-        <StatsCard 
-          title="عدد الطلبات" 
-          value={stats.totalOrders.toString()} 
-          icon={ShoppingBag} 
+        <StatsCard
+          title="عدد الطلبات"
+          value={stats.totalOrders.toString()}
+          icon={ShoppingBag}
           loading={loading}
           to="/orders"
         />
-        <StatsCard 
-          title="طلبات قيد الانتظار" 
-          value={stats.pendingOrders.toString()} 
-          icon={Clock} 
+        <StatsCard
+          title="طلبات قيد الانتظار"
+          value={stats.pendingOrders.toString()}
+          icon={Clock}
           loading={loading}
           highlight
           to="/orders"
         />
-        <StatsCard 
-          title="المنتجات النشطة" 
-          value={stats.activeProducts.toString()} 
-          icon={Package} 
+        <StatsCard
+          title="المنتجات النشطة"
+          value={stats.activeProducts.toString()}
+          icon={Package}
           loading={loading}
           to="/products"
         />
@@ -135,7 +135,7 @@ export function Dashboard() {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                   <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
-                  <Tooltip 
+                  <Tooltip
                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                     formatter={(value: number) => [`${value.toLocaleString()} د.ج`, 'المبيعات']}
                   />

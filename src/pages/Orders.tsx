@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Eye, Trash2, CheckCircle, XCircle, Clock, X, ShoppingBag, Printer, Bell } from 'lucide-react';
+import { Eye, Trash2, CheckCircle, XCircle, Clock, X, ShoppingBag, Printer, Bell, Truck, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ConfirmationModal } from '@/components/ConfirmationModal';
 
 export function Orders() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -10,6 +11,8 @@ export function Orders() {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [orderItems, setOrderItems] = useState<any[]>([]);
   const [loadingItems, setLoadingItems] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
 
   const [wilayasMap, setWilayasMap] = useState<Record<string, string>>({});
 
@@ -160,6 +163,30 @@ export function Orders() {
     }
   }
 
+  async function handleDeleteOrder() {
+    if (!orderToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', orderToDelete);
+
+      if (error) throw error;
+
+      setOrders(prev => prev.filter(order => order.id !== orderToDelete));
+      if (selectedOrder?.id === orderToDelete) {
+        setSelectedOrder(null);
+      }
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      alert('حدث خطأ أثناء حذف الطلب');
+    } finally {
+      setOrderToDelete(null);
+      setIsDeleteModalOpen(false);
+    }
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
@@ -194,10 +221,11 @@ export function Orders() {
             <table className="w-full text-sm text-right">
               <thead className="bg-gray-50 text-gray-500 font-medium">
                 <tr>
-                  <th className="px-4 py-3 rounded-tr-lg">رقم الطلب</th>
+                  <th className="px-4 py-3">رقم الطلب</th>
                   <th className="px-4 py-3">العميل</th>
                   <th className="px-4 py-3">الهاتف</th>
                   <th className="px-4 py-3">العنوان</th>
+                  <th className="px-4 py-3">التوصيل</th>
                   <th className="px-4 py-3">التاريخ</th>
                   <th className="px-4 py-3">المبلغ</th>
                   <th className="px-4 py-3">الحالة</th>
@@ -224,7 +252,22 @@ export function Orders() {
                       <td className="px-4 py-3 text-gray-500 truncate max-w-[150px]" title={order.address}>
                         {wilayasMap[order.wilaya_id] || order.wilaya_id || '-'}
                       </td>
-                      <td className="px-4 py-3 text-gray-500">{new Date(order.created_at).toLocaleDateString('ar-DZ')}</td>
+                      <td className="px-4 py-3">
+                        {order.delivery_type === 'home' ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                            <Truck className="w-3 h-3" /> باب المنزل
+                          </span>
+                        ) : (order.delivery_type === 'stop_desk' || order.delivery_type === 'office' || order.delivery_type === 'desk') ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] bg-orange-50 text-orange-700 px-2 py-0.5 rounded-full font-medium">
+                            <MapPin className="w-3 h-3" /> بريد
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-gray-400">
+                        {order.created_at ? new Date(order.created_at.replace(' ', 'T')).toLocaleDateString('ar-DZ') : '-'}
+                      </td>
                       <td className="px-4 py-3 font-bold">{order.total_price} د.ج</td>
                       <td className="px-4 py-3">
                         <span className={cn("px-2 py-1 rounded-full text-xs font-medium", getStatusColor(order.status))}>
@@ -245,6 +288,16 @@ export function Orders() {
                           title="إلغاء"
                         >
                           <XCircle className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setOrderToDelete(order.id);
+                            setIsDeleteModalOpen(true);
+                          }}
+                          className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                          title="حذف"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleViewOrder(order)}
@@ -276,9 +329,20 @@ export function Orders() {
                       <h4 className="font-bold text-gray-900">{order.customer_first_name} {order.customer_last_name}</h4>
                       <p className="text-xs text-gray-500">{order.customer_phone}</p>
                     </div>
-                    <span className={cn("px-2 py-1 rounded-full text-[10px] font-bold", getStatusColor(order.status))}>
-                      {getStatusLabel(order.status)}
-                    </span>
+                    <div className="flex flex-col items-end gap-2">
+                      <span className={cn("px-2 py-1 rounded-full text-[10px] font-bold", getStatusColor(order.status))}>
+                        {getStatusLabel(order.status)}
+                      </span>
+                      {order.delivery_type === 'home' ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                          <Truck className="w-3 h-3" /> باب المنزل
+                        </span>
+                      ) : (order.delivery_type === 'stop_desk' || order.delivery_type === 'office' || order.delivery_type === 'desk') ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] bg-orange-50 text-orange-700 px-2 py-0.5 rounded-full font-medium">
+                          <MapPin className="w-3 h-3" /> بريد
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
 
                   <div className="flex justify-between items-center text-sm pt-2 border-t border-gray-100">
@@ -300,10 +364,13 @@ export function Orders() {
                       <CheckCircle className="w-3 h-3" /> تأكيد
                     </button>
                     <button
-                      onClick={() => updateStatus(order.id, 'cancelled')}
+                      onClick={() => {
+                        setOrderToDelete(order.id);
+                        setIsDeleteModalOpen(true);
+                      }}
                       className="flex items-center justify-center gap-1 py-2 bg-red-50 text-red-600 rounded-xl text-xs font-bold hover:bg-red-100"
                     >
-                      <XCircle className="w-3 h-3" /> إلغاء
+                      <Trash2 className="w-3 h-3" /> حذف
                     </button>
                   </div>
                 </div>
@@ -324,7 +391,9 @@ export function Orders() {
                 </div>
                 <div>
                   <h2 className="text-xl font-serif font-bold">تفاصيل الطلب #{selectedOrder.order_number || selectedOrder.id.slice(0, 8)}</h2>
-                  <p className="text-xs text-gray-500">{new Date(selectedOrder.created_at).toLocaleString('ar-DZ')}</p>
+                  <p className="text-xs text-gray-500">
+                    {selectedOrder.created_at ? new Date(selectedOrder.created_at.replace(' ', 'T')).toLocaleString('ar-DZ') : '-'}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-2 print:hidden">
@@ -460,6 +529,17 @@ export function Orders() {
           </div>
         </div>
       )}
+
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setOrderToDelete(null);
+        }}
+        onConfirm={handleDeleteOrder}
+        title="حذف الطلب"
+        message="هل أنت متأكد من حذف هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء."
+      />
     </div>
   );
 }

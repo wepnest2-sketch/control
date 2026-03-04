@@ -10,7 +10,7 @@ interface HeaderProps {
   onMenuClick: () => void;
 }
 
-interface Notification {
+interface AppNotification {
   id: string;
   message: string;
   time: Date;
@@ -19,14 +19,19 @@ interface Notification {
 }
 
 export function Header({ onMenuClick }: HeaderProps) {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission>(
-    typeof window !== 'undefined' ? Notification.permission : 'default'
+    typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default'
   );
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
+    // Request permission on mount if it's still 'default'
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().then(result => setPermission(result));
+    }
+
     // Initialize audio
     audioRef.current = new Audio(NOTIFICATION_SOUND_URL);
     audioRef.current.load();
@@ -38,7 +43,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         const newOrder = payload.new;
         const message = `طلب جديد #${newOrder.order_number || newOrder.id.slice(0, 8)} من ${newOrder.customer_first_name || ''} ${newOrder.customer_last_name || ''}`;
 
-        const newNotification: Notification = {
+        const newNotification: AppNotification = {
           id: Date.now().toString(),
           message,
           time: new Date(),
@@ -58,15 +63,32 @@ export function Header({ onMenuClick }: HeaderProps) {
   }, []);
 
   const requestPermission = async () => {
-    const result = await Notification.requestPermission();
-    setPermission(result);
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      // Unlock audio on mobile
+      if (audioRef.current) {
+        const silentPlay = audioRef.current.play();
+        if (silentPlay !== undefined) {
+          silentPlay.then(() => {
+            if (audioRef.current) {
+              audioRef.current.pause();
+              audioRef.current.currentTime = 0;
+            }
+          }).catch(e => console.log("Silent play blocked", e));
+        }
+      }
+
+      const result = await Notification.requestPermission();
+      setPermission(result);
+    } else {
+      console.warn("Notifications are not supported in this browser.");
+    }
   };
 
   const showSystemNotification = (message: string) => {
-    if (Notification.permission === 'granted') {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
       new Notification('Papillon Admin', {
         body: message,
-        icon: 'https://res.cloudinary.com/dlwuxgvse/image/upload/v1771974115/ifjgnx1teusftkjbmsee.jpg'
+        icon: 'https://res.cloudinary.com/dlwuxgvse/image/upload/v1772389375/papillon_products/tltpbriumuhgf4tbdqv6.jpg'
       });
     }
   };
@@ -103,6 +125,18 @@ export function Header({ onMenuClick }: HeaderProps) {
         </div>
       </div>
 
+      <div className="flex-1 flex justify-center px-4">
+        {permission !== 'granted' && (
+          <button
+            onClick={requestPermission}
+            className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-full text-xs font-bold hover:bg-gray-800 transition-all shadow-lg active:scale-95 whitespace-nowrap"
+          >
+            <BellRing className="w-4 h-4" />
+            تفعيل الإشعارات
+          </button>
+        )}
+      </div>
+
       <div className="flex items-center gap-3 md:gap-6">
         <div className="relative">
           <button
@@ -117,26 +151,39 @@ export function Header({ onMenuClick }: HeaderProps) {
             )}
           </button>
 
+          {/* iOS Safari Guide Tooltip */}
+          {permission !== 'granted' && /iPhone|iPad|iPod/.test(navigator.userAgent) && !window.matchMedia('(display-mode: standalone)').matches && (
+            <div className="absolute top-12 left-0 w-64 bg-black text-white p-3 rounded-xl text-[10px] shadow-xl z-[60] animate-in fade-in slide-in-from-top-2">
+              <p className="font-bold mb-1 ml-4">لتصلك الإشعارات على آيفون:</p>
+              <ol className="list-decimal list-inside space-y-1 opacity-90">
+                <li>اضغط على زر المشاركة <span className="mx-1">📤</span></li>
+                <li>اختر "إضافة إلى الشاشة الرئيسية"</li>
+                <li>افتح التطبيق من الشاشة الرئيسية</li>
+              </ol>
+              <div className="absolute top-[-5px] left-6 w-3 h-3 bg-black rotate-45"></div>
+            </div>
+          )}
+
           {/* Notification Dropdown */}
           {isNotificationOpen && (
-            <div className="absolute right-0 mt-3 w-[calc(100vw-2rem)] md:w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
-              <div className="p-4 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 bg-white">
+            <div className="absolute left-[-100px] md:left-0 mt-3 w-[calc(100vw-32px)] sm:w-80 md:w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200 min-w-[280px] max-w-sm">
+              <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-white">
                 <div>
                   <h3 className="font-bold text-gray-900">مركز الإشعارات</h3>
                   <p className="text-[10px] text-gray-400">تابع تحركات متجرك لحظة بلحظة</p>
                 </div>
-                <div className="flex gap-2 w-full md:w-auto">
+                <div className="flex gap-2">
                   {notifications.length > 0 && (
                     <button
                       onClick={markAllAsRead}
-                      className="flex-1 md:flex-none p-1.5 px-3 text-[10px] bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-lg flex items-center justify-center gap-1 transition-colors"
+                      className="p-1 px-2 text-[10px] bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-lg flex items-center gap-1 transition-colors"
                     >
                       <Check className="w-3 h-3" /> تم قراءتها
                     </button>
                   )}
                   <button
                     onClick={clearNotifications}
-                    className="flex-1 md:flex-none p-1.5 px-3 text-[10px] bg-red-50 hover:bg-red-100 text-red-600 rounded-lg flex items-center justify-center gap-1 transition-colors"
+                    className="p-1 px-2 text-[10px] bg-red-50 hover:bg-red-100 text-red-600 rounded-lg flex items-center gap-1 transition-colors"
                   >
                     <Trash2 className="w-3 h-3" /> مسح
                   </button>
@@ -145,17 +192,24 @@ export function Header({ onMenuClick }: HeaderProps) {
 
               {/* Permission Banner */}
               {permission !== 'granted' && (
-                <div className="p-3 bg-black text-white flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <BellRing className="w-4 h-4 text-gray-300" />
-                    <span className="text-[10px] font-medium">فعل إشعارات المتصفح لتسمع الصوت</span>
+                <div className="p-3 bg-black text-white">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <BellRing className="w-4 h-4 text-gray-300" />
+                      <span className="text-[10px] font-medium">فعل إشعارات المتصفح لتسمع الصوت</span>
+                    </div>
+                    <button
+                      onClick={requestPermission}
+                      className="bg-white text-black px-3 py-1 rounded-lg text-[10px] font-bold hover:bg-gray-200"
+                    >
+                      تفعيل الصوت
+                    </button>
                   </div>
-                  <button
-                    onClick={requestPermission}
-                    className="bg-white text-black px-3 py-1 rounded-lg text-[10px] font-bold hover:bg-gray-200"
-                  >
-                    تفعيل الآن
-                  </button>
+                  {/iPhone|iPad|iPod/.test(navigator.userAgent) && !window.matchMedia('(display-mode: standalone)').matches && (
+                    <p className="text-[9px] text-gray-400 border-t border-white/10 pt-2 leading-tight">
+                      * ملاحظة: على آيفون يجب "إضافة التطبيق للشاشة الرئيسية" لتعمل الإشعارات الخارجية.
+                    </p>
+                  )}
                 </div>
               )}
 

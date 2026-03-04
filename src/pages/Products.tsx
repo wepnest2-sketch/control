@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/Card';
-import { Plus, Edit, Trash2, X, Save, Upload, Loader2 } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Save, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
+import { ImageUpload } from '@/components/ImageUpload';
 
 export function Products() {
   const [products, setProducts] = useState<any[]>([]);
@@ -54,43 +55,7 @@ export function Products() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    const uploadFormData = new FormData();
-    uploadFormData.append('file', file);
-
-    try {
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: uploadFormData,
-      });
-      
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.details || 'Upload failed');
-      }
-      
-      if (data.url) {
-        setFormData(prev => ({ ...prev, images: [...prev.images, data.url] }));
-      }
-    } catch (error: any) {
-      console.error('Upload failed', error);
-      alert('فشل رفع الصورة: ' + error.message);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const removeImage = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index)
-    }));
-  };
+  // handleImageUpload and removeImage removed to use ImageUpload component
 
   const handleVariantChange = (index: number, field: string, value: string) => {
     const newVariants = [...formData.variants];
@@ -120,12 +85,12 @@ export function Products() {
       discount_price: product.discount_price ? product.discount_price.toString() : '',
       images: product.images || [],
       category_id: product.category_id || '',
-      variants: product.product_variants && product.product_variants.length > 0 
+      variants: product.product_variants && product.product_variants.length > 0
         ? product.product_variants.map((v: any) => ({
-            size: v.size,
-            color_name: v.color_name,
-            quantity: v.quantity.toString()
-          }))
+          size: v.size,
+          color_name: v.color_name,
+          quantity: v.quantity.toString()
+        }))
         : [{ size: '', color_name: '', quantity: '' }]
     });
     setIsModalOpen(true);
@@ -185,7 +150,7 @@ export function Products() {
           .from('product_variants')
           .delete()
           .eq('product_id', productId);
-        
+
         if (deleteVariantsError) throw deleteVariantsError;
 
       } else {
@@ -239,13 +204,13 @@ export function Products() {
     setStockProduct(product);
     setFormData({
       ...formData,
-      variants: product.product_variants && product.product_variants.length > 0 
+      variants: product.product_variants && product.product_variants.length > 0
         ? product.product_variants.map((v: any) => ({
-            id: v.id, // Keep ID for update
-            size: v.size,
-            color_name: v.color_name,
-            quantity: v.quantity.toString()
-          }))
+          id: v.id, // Keep ID for update
+          size: v.size,
+          color_name: v.color_name,
+          quantity: v.quantity.toString()
+        }))
         : []
     });
     setStockModalOpen(true);
@@ -272,7 +237,7 @@ export function Products() {
             .from('product_variants')
             .update({ quantity: parseInt(variant.quantity) || 0 })
             .eq('id', (variant as any).id);
-          
+
           if (error) throw error;
         }
       }
@@ -290,7 +255,7 @@ export function Products() {
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-serif font-bold text-gray-900">المنتجات</h1>
-        <button 
+        <button
           onClick={() => setIsModalOpen(true)}
           className="bg-black text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-gray-800 transition-colors shadow-lg"
         >
@@ -309,9 +274,9 @@ export function Products() {
             <Card key={product.id} className="group overflow-hidden hover:shadow-xl transition-all duration-300">
               <div className="aspect-square bg-gray-100 relative overflow-hidden">
                 {product.images && product.images[0] ? (
-                  <img 
-                    src={product.images[0]} 
-                    alt={product.name} 
+                  <img
+                    src={product.images[0]}
+                    alt={product.name}
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
@@ -334,7 +299,7 @@ export function Products() {
               <CardContent className="p-5">
                 <h3 className="font-serif font-bold text-xl mb-2 text-gray-900">{product.name}</h3>
                 <p className="text-gray-500 text-sm line-clamp-2 mb-4 h-10">{product.description}</p>
-                
+
                 <div className="flex flex-wrap gap-2 mb-4">
                   {product.product_variants?.slice(0, 3).map((v: any, i: number) => (
                     <span key={i} className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600 border border-gray-200 flex items-center gap-1">
@@ -349,20 +314,20 @@ export function Products() {
                 </div>
 
                 <div className="flex justify-end gap-2 border-t border-gray-100 pt-4 mt-2">
-                  <button 
+                  <button
                     onClick={() => openStockModal(product)}
                     className="px-3 py-1 text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-full transition-colors font-medium"
                   >
                     تعديل المخزون
                   </button>
                   <div className="flex-1"></div>
-                  <button 
+                  <button
                     onClick={() => openEditModal(product)}
                     className="p-2 text-gray-400 hover:text-black hover:bg-gray-50 rounded-full transition-colors"
                   >
                     <Edit className="w-4 h-4" />
                   </button>
-                  <button 
+                  <button
                     onClick={() => setDeleteConfirmation(product)}
                     className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
                   >
@@ -385,7 +350,7 @@ export function Products() {
                 <X className="w-6 h-6" />
               </button>
             </div>
-            
+
             <form onSubmit={handleStockSubmit} className="p-6 space-y-4">
               <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
                 {formData.variants.map((variant, index) => (
@@ -413,15 +378,15 @@ export function Products() {
               </div>
 
               <div className="pt-4 flex justify-end gap-3">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={closeStockModal}
                   className="px-4 py-2 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors"
                 >
                   إلغاء
                 </button>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   className="px-4 py-2 rounded-xl bg-black text-white hover:bg-gray-800 transition-colors shadow-lg"
                 >
                   حفظ التغييرات
@@ -445,13 +410,13 @@ export function Products() {
                 هل أنت متأكد من حذف "{deleteConfirmation.name}"؟ لا يمكن التراجع عن هذا الإجراء.
               </p>
               <div className="flex gap-3">
-                <button 
+                <button
                   onClick={() => setDeleteConfirmation(null)}
                   className="flex-1 px-4 py-2 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors"
                 >
                   إلغاء
                 </button>
-                <button 
+                <button
                   onClick={handleDelete}
                   className="flex-1 px-4 py-2 rounded-xl bg-red-600 text-white hover:bg-red-700 transition-colors shadow-lg"
                 >
@@ -473,7 +438,7 @@ export function Products() {
                 <X className="w-6 h-6" />
               </button>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -510,7 +475,7 @@ export function Products() {
                     placeholder="0.00"
                   />
                 </div>
-                
+
                 <div className="space-y-2 md:col-span-2">
                   <label className="text-sm font-medium text-gray-700">التصنيف</label>
                   <select
@@ -529,45 +494,12 @@ export function Products() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">صور المنتج</label>
-                <div className="grid grid-cols-4 gap-4">
-                  {formData.images.map((img, index) => (
-                    <div key={index} className="relative aspect-square bg-gray-100 rounded-xl overflow-hidden border border-gray-200 group">
-                      <img 
-                        src={img} 
-                        alt={`Preview ${index}`} 
-                        referrerPolicy="no-referrer"
-                        className="w-full h-full object-cover" 
-                      />
-                      <button 
-                        type="button"
-                        onClick={() => removeImage(index)}
-                        className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    </div>
-                  ))}
-                  
-                  <div className="relative aspect-square bg-gray-50 rounded-xl overflow-hidden border-2 border-dashed border-gray-200 flex items-center justify-center group hover:border-black/20 transition-colors">
-                    {uploading ? (
-                      <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                    ) : (
-                      <>
-                        <div className="flex flex-col items-center gap-2 text-gray-400 group-hover:text-gray-600">
-                          <Upload className="w-6 h-6" />
-                          <span className="text-xs">إضافة</span>
-                        </div>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                          className="absolute inset-0 opacity-0 cursor-pointer"
-                          disabled={uploading}
-                        />
-                      </>
-                    )}
-                  </div>
-                </div>
+                <ImageUpload
+                  value={formData.images}
+                  onChange={(urls) => setFormData(prev => ({ ...prev, images: urls }))}
+                  multiple
+                  maxFiles={10}
+                />
               </div>
 
               <div className="space-y-2">
@@ -588,7 +520,7 @@ export function Products() {
                     <Plus className="w-3 h-3" /> إضافة نوع
                   </button>
                 </div>
-                
+
                 {formData.variants.map((variant, index) => (
                   <div key={index} className="grid grid-cols-7 gap-3 items-end bg-gray-50 p-3 rounded-xl">
                     <div className="col-span-2 space-y-1">
@@ -620,8 +552,8 @@ export function Products() {
                       />
                     </div>
                     <div className="col-span-7 flex justify-end pt-2">
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={() => removeVariant(index)}
                         className="text-red-400 hover:text-red-600 flex items-center gap-1 text-xs"
                       >
@@ -633,15 +565,15 @@ export function Products() {
               </div>
 
               <div className="pt-4 flex justify-end gap-3">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={closeModal}
                   className="px-6 py-2 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors"
                 >
                   إلغاء
                 </button>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   className="px-6 py-2 rounded-xl bg-black text-white hover:bg-gray-800 transition-colors shadow-lg flex items-center gap-2"
                 >
                   <Save className="w-4 h-4" />

@@ -24,13 +24,38 @@ export function ImageUpload({ value = [], onChange, multiple = false, maxFiles =
       for (let i = 0; i < files.length; i++) {
         if (value.length + newUrls.length >= maxFiles) break;
         const file = files[i];
-        const url = await uploadToCloudinary(file);
-        newUrls.push(url);
+
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', file);
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: uploadFormData,
+        });
+
+        if (!response.ok) {
+          let errorMsg = 'Upload failed';
+          try {
+            const errorData = await response.json();
+            errorMsg = errorData.details || errorData.error || errorMsg;
+          } catch (e) {
+            errorMsg = `Server error: ${response.status} ${response.statusText}`;
+          }
+          throw new Error(errorMsg);
+        }
+
+        const data = await response.json().catch(() => {
+          throw new Error('Invalid response from server');
+        });
+
+        if (data.url) {
+          newUrls.push(data.url);
+        }
       }
       onChange([...value, ...newUrls]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload failed:', error);
-      alert('فشل رفع الصورة');
+      alert('فشل رفع الصورة: ' + (error.message || 'خطأ غير معروف'));
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
@@ -60,7 +85,7 @@ export function ImageUpload({ value = [], onChange, multiple = false, maxFiles =
             </button>
           </div>
         ))}
-        
+
         {(multiple || value.length === 0) && value.length < maxFiles && (
           <button
             type="button"
@@ -79,7 +104,7 @@ export function ImageUpload({ value = [], onChange, multiple = false, maxFiles =
           </button>
         )}
       </div>
-      
+
       <input
         ref={fileInputRef}
         type="file"

@@ -1,5 +1,5 @@
 {
   "name": "Papillon Admin",
-  "description": "A minimalist, luxury admin dashboard for the Papillon e-commerce store, featuring inventory management and Supabase integration.",
+  "description": "A minimalist, luxury admin dashboard for Papillon e-commerce store with Supabase integration.",
   "requestFramePermissions": []
 }
